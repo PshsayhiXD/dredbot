@@ -1,0 +1,21 @@
+{
+  "pageTitle": "Benutzerpanel - Dredbot",
+  "brand": "Dredbot",
+  "loading": "Wird geladen...",
+  "changePassword": "Passwort ändern",
+  "logout": "Abmelden",
+  "welcome": "Willkommen in deinem Panel",
+  "overview": "Hier ist eine kurze Zusammenfassung deiner Aktivität.",
+  "commandsUsed": "Verwendete Befehle",
+  "yourBalance": "Dein Guthaben",
+  "passwordOldPrompt": "Gib dein altes Passwort ein:",
+  "passwordNewPrompt": "Gib dein neues Passwort ein:",
+  "passwordConfirmPrompt": "Bestätige dein neues Passwort:",
+  "passwordMismatch": "Das neue Passwort und die Bestätigung stimmen nicht überein.",
+  "passwordChanged": "Passwort erfolgreich geändert!",
+  "passwordChangeFailed": "Passwortänderung fehlgeschlagen. Bitte versuche es erneut.",
+  "logoutConfirm": "Bist du sicher, dass du dich abmelden möchtest?",
+  "logoutFailed": "[-] Fehler beim Abmelden",
+  "notLoggedIn": "Bitte melde dich an",
+  "notAvailable": "N/V"
+}

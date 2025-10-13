@@ -1,0 +1,21 @@
+{
+  "pageTitle": "Bảng điều khiển người dùng - Dredbot",
+  "brand": "Dredbot",
+  "loading": "Đang tải...",
+  "changePassword": "Đổi mật khẩu",
+  "logout": "Đăng xuất",
+  "welcome": "Chào mừng đến với bảng điều khiển của bạn",
+  "overview": "Đây là tổng quan nhanh về hoạt động của bạn.",
+  "commandsUsed": "Lệnh đã sử dụng",
+  "yourBalance": "Số dư của bạn",
+  "passwordOldPrompt": "Nhập mật khẩu cũ của bạn:",
+  "passwordNewPrompt": "Nhập mật khẩu mới của bạn:",
+  "passwordConfirmPrompt": "Xác nhận mật khẩu mới của bạn:",
+  "passwordMismatch": "Mật khẩu mới và xác nhận không khớp.",
+  "passwordChanged": "Đổi mật khẩu thành công!",
+  "passwordChangeFailed": "Thay đổi mật khẩu thất bại. Vui lòng thử lại.",
+  "logoutConfirm": "Bạn có chắc chắn muốn đăng xuất không?",
+  "logoutFailed": "[-] Đăng xuất thất bại",
+  "notLoggedIn": "Vui lòng đăng nhập",
+  "notAvailable": "N/A"
+}

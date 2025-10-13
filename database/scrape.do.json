@@ -1,0 +1,13 @@
+{
+  "started": 1755766011389,
+  "resetAt": 1758530811389,
+  "used": 15,
+  "limit": 1000,
+  "fetch": 3,
+  "success": 3,
+  "errors": 0,
+  "lastFetch": 1756355270059,
+  "next": 1756551689616,
+  "avgIntervalMs": 196419557,
+  "remaining": 985
+}

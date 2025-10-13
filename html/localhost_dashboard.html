@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Tracker</title>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .method-badge {
+            font-size: 0.8em;
+            width: 70px;
+            display: inline-block;
+            text-align: center;
+        }
+        .log-entry {
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .count-display {
+            font-size: 2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1 class="mb-4">Request Tracker</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        Request Counts
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col">
+                                <div>GET</div>
+                                <div class="count-display text-primary" id="get-count">0</div>
+                            </div>
+                            <div class="col">
+                                <div>POST</div>
+                                <div class="count-display text-success" id="post-count">0</div>
+                            </div>
+                            <div class="col">
+                                <div>Other</div>
+                                <div class="count-display text-secondary" id="other-count">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                Recent Requests (Last 20)
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="request-log">
+                    <div class="list-group-item text-muted">No requests yet...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper to format timestamps
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString();
+        }
+
+        // Helper to get method badge class
+        function getMethodClass(method) {
+            const classes = {
+                'GET': 'bg-primary',
+                'POST': 'bg-success',
+                'PUT': 'bg-warning',
+                'DELETE': 'bg-danger',
+                'PATCH': 'bg-info'
+            };
+            return classes[method] || 'bg-secondary';
+        }
+
+        // Fetch and update stats
+        async function updateStats() {
+            try {
+                const response = await fetch('http://localhost:3000/request-stats', {
+                    headers: { 
+                        'x-api-key': localStorage.getItem('apiKey')
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch stats');
+                
+                const data = await response.json();
+                
+                // Update counters
+                document.getElementById('get-count').textContent = data.counts.GET || 0;
+                document.getElementById('post-count').textContent = data.counts.POST || 0;
+                document.getElementById('other-count').textContent = 
+                    (data.counts.PUT || 0) + (data.counts.DELETE || 0) + (data.counts.PATCH || 0);
+                
+                // Update request log
+                const logElement = document.getElementById('request-log');
+                if (data.recent.length > 0) {
+                    logElement.innerHTML = data.recent.map(req => `
+                        <div class="list-group-item log-entry">
+                            <span class="method-badge badge ${getMethodClass(req.method)}">
+                                ${req.method}
+                            </span>
+                            <span class="ms-2">${req.path}</span>
+                            <span class="text-muted float-end">${formatTime(req.timestamp)}</span>
+                        </div>
+                    `).join('');
+                }
+                
+                // Store API key if this was first successful request
+                if (!localStorage.getItem('apiKey')) {
+                    localStorage.setItem('apiKey', document.querySelector('input').value);
+                }
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // Update every 2 seconds
+        setInterval(updateStats, 2000);
+        updateStats();
+    </script>
+</body>
+</html>

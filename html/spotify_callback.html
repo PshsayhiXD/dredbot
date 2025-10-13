@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spotify Tokens</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background-color: #2a2a2a;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    }
+
+    .card-body {
+      padding: 1rem;
+    }
+
+    .token-value {
+      word-break: break-all;
+      margin: 0;
+    }
+
+    .btn {
+      padding: 0.3rem 0.75rem;
+      background-color: #1db954;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #1ed760;
+    }
+
+    @media (max-width: 500px) {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spotify Tokens</h1>
+
+    <div class="card">
+      <div class="card-header">
+        Access Token
+        <button class="btn" onclick="copyText('access_token')">Copy</button>
+      </div>
+      <div class="card-body">
+        <p id="access_token" class="token-value">{{access_token}}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        Refresh Token
+        <button class="btn" onclick="copyText('refresh_token')">Copy</button>
+      </div>
+      <div class="card-body">
+        <p id="refresh_token" class="token-value">{{refresh_token}}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        Expires In (seconds)
+        <button class="btn" onclick="copyText('expires_in')">Copy</button>
+      </div>
+      <div class="card-body">
+        <p id="expires_in" class="token-value">{{expires_in}}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        Obtained At (ms since epoch)
+        <button class="btn" onclick="copyText('obtained_at')">Copy</button>
+      </div>
+      <div class="card-body">
+        <p id="obtained_at" class="token-value">{{obtained_at}}</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyText(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "pageTitle": "📄👤🎮",
+  "brand": "🤖",
+  "loading": "⏳🔄",
+  "changePassword": "🔐➡️🔐",
+  "logout": "🚪👋",
+  "welcome": "🙋‍♂️🏠✨",
+  "overview": "👀📊🧾",
+  "commandsUsed": "⌨️📈",
+  "yourBalance": "💰🧮",
+  "passwordOldPrompt": "🔒👴❓",
+  "passwordNewPrompt": "🆕🔒✍️",
+  "passwordConfirmPrompt": "🔁🔒❓",
+  "passwordMismatch": "❌🔒🤷‍♂️",
+  "passwordChanged": "✅🔒🎉",
+  "passwordChangeFailed": "❌🔒😓",
+  "logoutConfirm": "❓🚪👋🤔",
+  "logoutFailed": "❌🚪🙅",
+  "notLoggedIn": "🚫🔑🙇",
+  "notAvailable": "❌📦"
+}

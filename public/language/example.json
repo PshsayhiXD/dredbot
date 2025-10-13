@@ -1,0 +1,21 @@
+{
+  "pageTitle": "User Dashboard - Dredbot",
+  "brand": "Dredbot",
+  "loading": "Loading...",
+  "changePassword": "Change Password",
+  "logout": "Logout",
+  "welcome": "Welcome to Your Dashboard",
+  "overview": "Here's a quick overview of your activity.",
+  "commandsUsed": "Commands Used",
+  "yourBalance": "Your Balance",
+  "passwordOldPrompt": "Enter your old password:",
+  "passwordNewPrompt": "Enter your new password:",
+  "passwordConfirmPrompt": "Confirm your new password:",
+  "passwordMismatch": "New password and confirmation do not match.",
+  "passwordChanged": "Password changed successfully!",
+  "passwordChangeFailed": "Password change failed. Please try again.",
+  "logoutConfirm": "Are you sure you want to logout?",
+  "logoutFailed": "[-] Logout failed",
+  "notLoggedIn": "Please log in",
+  "notAvailable": "N/A"
+}

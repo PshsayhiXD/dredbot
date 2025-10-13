@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="pageTitle">User Dashboard - Dredbot</title>
+  <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      min-height: 100vh;
+      background: linear-gradient(to right, #f8f9fa, #e3f2fd);
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 80px;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1030;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      color: #343a40;
+      font-weight: 600;
+    }
+
+    .card-text {
+      font-weight: 500;
+      font-size: 2rem;
+    }
+
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-header h1 {
+      font-weight: 700;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #popup-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+    }
+
+    #popup-modal.active {
+      display: flex;
+    }
+
+    #popup-content {
+      background: white;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      padding: 1.5rem;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    #popup-message {
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      white-space: pre-wrap;
+    }
+
+    #popup-input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    #popup-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    #popup-buttons button {
+      min-width: 80px;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand navbar-dark bg-primary">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <a class="navbar-brand fw-bold" href="#" data-i18n="brand">Dredbot</a>
+        <span id="welcome-text" class="navbar-text text-white">Loading...</span>
+      </div>
+      <div class="d-flex align-items-center gap-2 position-relative">
+        <select id="language-select" class="form-select form-select-sm" style="width: auto;">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="ru">Russian</option>
+          <option value="vi">Vietnamese</option>
+          <option value="de">German</option>
+          <option value="zh-CN">China (Simplified)</option>
+          <option value="zh-TW">China (Traditional)</option>
+          <option value="brainrot">Brainrot</option>
+          <option value="kawaii">Kawaii</option>
+          <option value="emoji">emoji</option>
+        </select>
+        <button id="menuBtn" class="btn btn-outline-light btn-sm" aria-expanded="false" aria-label="Toggle menu"
+          style="padding: 0 8px; font-size: 1.25rem;">
+          ☰
+        </button>
+        <div id="menuDropdown" class="dropdown-menu dropdown-menu-end"
+          style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.25rem; min-width: 160px;">
+          <button id="change-password-btn" class="dropdown-item" data-i18n="changePassword" type="button">
+            Change Password
+          </button>
+          <button id="logout-btn" class="dropdown-item" data-i18n="logout" type="button">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="container fade-in">
+    <div class="dashboard-header">
+      <h1 data-i18n="welcome">Welcome to Your Dashboard</h1>
+      <p class="text-muted" data-i18n="overview">Here's a quick overview of your activity.</p>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5 mb-4">
+        <div class="card shadow-sm border-0 p-3 text-center">
+          <h5 class="card-title" data-i18n="commandsUsed">Commands Used</h5>
+          <p id="commands-used" class="card-text">Loading...</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-5 mb-4">
+        <div class="card shadow-sm border-0 p-3 text-center">
+          <h5 class="card-title" data-i18n="yourBalance">Your Balance</h5>
+          <p id="balance" class="card-text">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="popup-modal" role="dialog" aria-modal="true" aria-labelledby="popup-message">
+    <div id="popup-content">
+      <div id="popup-message"></div>
+      <div id="popup-inputs" style="display: none;"></div>
+      <div id="popup-buttons">
+        <button id="popup-ok-btn" class="btn btn-primary">OK</button>
+        <button id="popup-cancel-btn" class="btn btn-secondary" style="display:none;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script nonce="dredbot">
+    const modal = document.getElementById('popup-modal');
+    const modalMsg = document.getElementById('popup-message');
+    const modalOk = document.getElementById('popup-ok-btn');
+    const modalCancel = document.getElementById('popup-cancel-btn');
+    const modalInputs = document.getElementById('popup-inputs');
+    const popup = ({ message = '', inputs = [], confirm = false }) => {
+      return new Promise((resolve) => {
+        modalMsg.textContent = message;
+        modalInputs.innerHTML = '';
+        modalInputs.style.display = inputs.length ? 'block' : 'none';
+        inputs.forEach(({ id, type = 'password', placeholder, required = false }) => {
+          const wrapper = document.createElement('div');
+          wrapper.style.position = 'relative';
+          const input = document.createElement('input');
+          input.type = type;
+          input.id = id;
+          input.placeholder = placeholder;
+          input.className = 'form-control mb-2';
+          if (required) input.dataset.required = 'true';
+          const helper = document.createElement('div');
+          helper.className = 'helper-box';
+          helper.textContent = '⚠ Required';
+          helper.style = `
+            position: absolute;
+            top: -10px;
+            left: 0;
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            display: none;
+            z-index: 1;
+            transform: translateY(-8px);
+            opacity: 0;
+            transition: all 0.3s ease;
+          `;
+          input.addEventListener('input', () => {
+            input.style.outline = '';
+            helper.style.display = 'none';
+          });
+          wrapper.appendChild(input);
+          wrapper.appendChild(helper);
+          modalInputs.appendChild(wrapper);
+        });
+        modalCancel.style.display = confirm || inputs.length ? 'inline-block' : 'none';
+        modal.classList.add('active');
+        if (inputs.length) setTimeout(() => modalInputs.querySelector('input')?.focus(), 100);
+        const cleanup = () => {
+          modalOk.removeEventListener('click', ok);
+          modalCancel.removeEventListener('click', cancel);
+          modal.classList.remove('active');
+        };
+        const showHelper = (input, helper) => {
+          helper.style.display = 'block';
+          requestAnimationFrame(() => {
+            helper.style.opacity = '1';
+            helper.style.transform = 'translateY(4px)';
+          });
+          input.style.outline = '2px solid #ffdd57';
+          setTimeout(() => {
+            helper.style.opacity = '0';
+            helper.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+              helper.style.display = 'none';
+              input.style.outline = '';
+            }, 300);
+          }, 2500);
+        };
+        const ok = () => {
+          const values = {};
+          let allValid = true;
+          inputs.forEach(({ id, required }) => {
+            const input = document.getElementById(id);
+            const helper = input.nextSibling;
+            const val = input.value.trim();
+            values[id] = val;
+            if (required && !val) {
+              allValid = false;
+              showHelper(input, helper);
+            }
+          });
+          if (!allValid) return;
+          cleanup();
+          resolve(values);
+        };
+        const cancel = () => {
+          cleanup();
+          resolve(false);
+        };
+        modalOk.addEventListener('click', ok);
+        modalCancel.addEventListener('click', cancel);
+        function onKeydown(e) {
+          if (e.key === 'Enter') ok();
+          else if (e.key === 'Escape') cancel();
+        }
+        document.addEventListener('keydown', onKeydown, { once: true });
+      });
+    };
+    const Alert = async (message) => await popup({ message });
+    const Confirm = async (message) => await popup({ message, confirm: true });
+    const Prompt = async (message) => await popup({ message, input: true });
+    const morePrompt = async (message, inputs) => { return await popup({ message, inputs }) };
+    const loadLanguage = async (lang) => {
+      try {
+        const res = await fetch(`/language/${lang}.json`);
+        if (!res.ok) throw new Error('[-] Language not found.');
+        return await res.json();
+      } catch {
+        console.warn('[!] Failed to load language.');
+        const fallbackRes = await fetch('/language/en.json');
+        return await fallbackRes.json();
+      }
+    };
+    const translate = (translations) => {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[key]) el.textContent = translations[key];
+      });
+    };
+    window.onload = async () => {
+      let currLang = {};
+      const changeLanguage = async (lang) => {
+        const a = await loadLanguage(lang);
+        currLang = a;
+        translate(a);
+      }
+      const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+      const languageSelect = document.getElementById('language-select');
+      const savedLang = localStorage.getItem('lang') || 'en';
+      languageSelect.value = savedLang;
+      await changeLanguage(savedLang);
+      try {
+        const res = await fetch('/get-profile', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (!res.ok) throw new Error('[-] Error loading profile.');
+        const userData = await res.json();
+        setText('welcome-text', `Welcome, ${userData.profile.username}`);
+        setText('commands-used', userData.profile.command_execute.toString());
+        setText('balance', userData.profile.balance.toString());
+      } catch (err) {
+        console.warn(`[-] Error loading profile: ${err}`)
+        setText('welcome-text', 'Please log in');
+        setText('commands-used', 'N/A');
+        setText('balance', 'N/A');
+      }
+      languageSelect.addEventListener('change', async () => {
+        const lang = languageSelect.value;
+        localStorage.setItem('lang', lang);
+        await changeLanguage(lang);
+      });
+      document.getElementById('change-password-btn').addEventListener('click', async () => {
+        const input = [
+          { id: 'oldPass', placeholder: currLang.passwordOldPrompt || 'Enter your old password:', required: true },
+          { id: 'newPass', placeholder: currLang.passwordNewPrompt || 'Enter your new password:', required: true },
+          { id: 'confirmPass', placeholder: currLang.passwordConfirmPrompt || 'Confirm your new password:', required: true },
+        ];
+        const result = await morePrompt(currLang.changePasswordTitle || 'Change your password', input);
+        if (!result) return;
+        const { oldPass, newPass, confirmPass } = result;
+        if (newPass.trim() !== confirmPass.trim()) return await Alert(currLang.passwordMismatch || 'New password and confirmation do not match.');
+        try {
+          const response = await fetch('/change-password', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              oldPassword: oldPass,
+              newPassword: newPass,
+              confirmPassword: confirmPass
+            })
+          });
+          const resJson = await response.json();
+          if (response.ok && resJson.success) await Alert(currLang.passwordChanged || 'Password changed successfully!');
+          else await Alert(resJson.message || currLang.passwordChangeFailed || 'Password change failed.');
+        } catch (err) {
+          console.error(err);
+          await Alert(currLang.passwordChangeFailed || 'Password change failed.');
+        }
+      });
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        if (!(await Confirm(currLang.logoutConfirm || 'Are you sure you want to logout?'))) return;
+        const response = await fetch('/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) return Alert(currLang.logoutFailed || '[-] Logout failed.');
+        location.reload();
+      });
+    };
+    const menuBtn = document.getElementById('menuBtn');
+    const menuDropdown = document.getElementById('menuDropdown');
+    menuBtn.addEventListener('click', () => {
+      const isVisible = menuDropdown.style.display === 'block';
+      menuDropdown.style.display = isVisible ? 'none' : 'block';
+      menuBtn.setAttribute('aria-expanded', !isVisible);
+    });
+    document.addEventListener('click', (e) => {
+      if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+        menuDropdown.style.display = 'none';
+        menuBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+{
+  "hashes": {
+    "commands": "b3dff316e5fdcf7f01b8722395ab5b5da0a23a1a707ab2218003f9beb2456fa9",
+    "tasks": "767d9865c9bef31d20183ade01217b77491e4692637b9aa56a23ca59fcf5bc6a",
+    "utils": "85bb270aade94d58676eb3785b3e3364c832ce356c64c02c9336ce1c6053459f",
+    "middleware": "3cb52ad2da28d70b45bf419f0f4abc4313f34d1233fb23219a2e956fbcbdca14",
+    "routes": "b8d0e7b892d315d1fd2b70d5ca3e94da40f5650fbe56e14f596f74b9c7641c22",
+    "html": "bcb0f69fdbfd392b04972e7defcea013fb7d3a35c28171152b9e3d2fb2a3ec9d",
+    "public": "8fc3344942a8548d8db467e559e76b448c6d0323ae7d9452598b8ca113476b17",
+    "config.js": "5fc35fff7569c4662937ded4f2aa70a86b748caed4f48de16b90a86a3a059270",
+    "version.js": "7df3756f4de0d223f80242a7e8efe345a14d386da38c4235d638ab1e47511e76",
+    "ui.js": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "wss.js": "10fe8ef420aaf468f4334d522535447d9948f1cfec41a60c7e13595b24c34c40",
+    "localhost.js": "83b47a12be7ce00cc322882ff0cbf8b64e79ae6fc48683fb512fa039be2cea9c",
+    "language": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "major": 1,
+  "patch": 1,
+  "minor": 0,
+  "lastUpdate": "2025-10-12T10:09:41.633Z"
+}

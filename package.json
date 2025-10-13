@@ -1,0 +1,26 @@
+{
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "better-sqlite3": "^12.2.0",
+    "canvas": "^3.1.2",
+    "chalk": "^5.4.1",
+    "cheerio": "^1.1.2",
+    "color": "^5.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.5.0",
+    "dsabp-js": "^0.4.12",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "luxon": "^3.6.1",
+    "mathjs": "^14.5.2",
+    "node-cache": "^5.1.2",
+    "openssl": "^2.0.0",
+    "sharp": "^0.34.3",
+    "ua-parser-js": "^2.0.4",
+    "ws": "^8.18.2"
+  }
+}

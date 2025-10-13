@@ -1,0 +1,41 @@
+import { EmbedBuilder } from 'discord.js';
+import { helper }  from '../utils/helper.js'
+import config from '../config.js';
+import log from '../utils/logger.js';
+const NGROK = await helper.getNgrokUrl();
+
+export const sendDashboardEmbed = async (client) => {
+  try {
+    const channel = await client.channels.fetch(config.dashboardChannelID);
+    if (!channel) throw new Error("[-] sendDashboardEmbed: Dashboard channel not found!");
+    const embed = new EmbedBuilder()
+      .setTitle("Dashboard")
+      .setDescription(`**🔗 [Click to Open Dashboard](${NGROK})**\nOr copy this link:\`\`\`${NGROK}\`\`\``)
+      .setColor(0xFFA500)
+      .addFields(
+        {
+          name: "📄 Legal",
+          value: `[Privacy Policy](${NGROK}/privacy) • [Terms of Service](${NGROK}/terms)`,
+          inline: false
+        },
+        {
+          name: "Security Notice",
+          value: "Never log in with accounts you do not own. Moderators will **not** assist with stolen tokens or IP stolen.",
+          inline: false
+        }
+      )
+      .setFooter({
+        text: "⚠️⚠️⚠️ DO NOT LOG IN WITH ACCOUNTS YOU DON'T OWN. YOU ARE RESPONSIBLE FOR YOUR OWN SAFETY. ⚠️⚠️⚠️"
+      }).setTimestamp();
+    const messages = await channel.messages.fetch({ limit: 10 });
+    const prevMsg = messages.find(msg =>
+      msg.author.id === client.user.id &&
+      msg.embeds.length
+    );
+    if (prevMsg) await prevMsg.edit({ embeds: [embed] });
+    else await channel.send({ embeds: [embed] });
+  } catch (err) {
+    log(`[-] Failed to send dashboard embed: ${err}`, "error");
+  }
+  log(`[dashboard.js] registered.`, "success");
+};
