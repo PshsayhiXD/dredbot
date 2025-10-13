@@ -62,7 +62,7 @@ await (async function() {
     };
   });
   const logAllRoutes = (baseURL = '') => {
-    log('\n[bot.js] Available Routes:');
+    log('\n[bot.js] Available Routes:', "title");
     if (!allRoutes.length) return log('  (no routes found)');
     allRoutes.forEach(r => {
       log(`  [${r.method}] ${r.path} → ${baseURL}${r.path}`);
@@ -123,6 +123,7 @@ await (async function() {
     await setupMissionTimer(bot);
     await setupShipTracker(bot);
     await rescheduleAll(bot);
+    await setupCurrentVersion(bot);
     const allCommand = await getAllCommand(bot);
     const dupedIdCommand = await getDupeIdCommands(bot);
     log(`[bot.js] Logged in as ${bot.user.tag} (ID: ${bot.user.id})`);

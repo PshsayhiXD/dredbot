@@ -23,7 +23,7 @@ export default async function registerSlashCommands(bot, mode = 'guild') {
     bot.slashCommands.set(command.data.name, command);
     const json = command.data.toJSON();
     commands.push(json);
-    log(`[registerSlashCommands] Loaded slash command: ${command.data.name}`);
+    log(`[registerSlashCommands] Loaded slash command: ${command.data.name}.`, "success");
   }
   const TOKEN = process.env.DISCORD_TOKEN;
   const CLIENT_ID = process.env.DISCORD_CLIENT_ID;

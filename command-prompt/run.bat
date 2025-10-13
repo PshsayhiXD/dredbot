@@ -39,6 +39,7 @@ if errorlevel 1 (
     echo Failed to start bot.js
     goto :error
 )
+echo 2.5 Validating stuffs...
 start /b node utils/validator.js
 if errorlevel 1 (
     echo Failed to validate Items

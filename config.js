@@ -101,6 +101,7 @@ const config = {
   ShipTrackerChannelID: '1363335165006446806',
   statusChannelID: '1348595253300690976',
   AdminCommandChannelID: '1412747210122199080',
+  CurrentVersionChannelID: '1424971820766859438',
   BotAvatarURL: 'https://cdn.discordapp.com/avatars/1342359906510049291/018ac0041678d70e246ebec53f849e9a.webp?size=512',
   ReactionRoles: {
     '👾': { label: 'Discord Bot Updates', role: '1344983022465974313' },

@@ -1,0 +1,766 @@
+{
+  "2025-10-13": {
+    "files": {
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\bot.js": {
+        "size": 12281
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\anonymous.js": {
+        "size": 1559
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\changepassword.js": {
+        "size": 2241
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\decryptaccount.js": {
+        "size": 2684
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\exportaccount.js": {
+        "size": 1018
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\login.js": {
+        "size": 2422
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\logout.js": {
+        "size": 1176
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\resetcookie.js": {
+        "size": 1135
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\setdisplayname.js": {
+        "size": 1328
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\banclanmember.js": {
+        "size": 2155
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\changeclansetting.js": {
+        "size": 2671
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\createclan.js": {
+        "size": 975
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\joinclan.js": {
+        "size": 1054
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\kickclanmember.js": {
+        "size": 2177
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\leaveclan.js": {
+        "size": 892
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\listclanbannedmember.js": {
+        "size": 2123
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\setclanbanner.js": {
+        "size": 3501
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\unbanclanmember.js": {
+        "size": 2556
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\viewclanpendingrequest.js": {
+        "size": 6034
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\clan\\viewclanprofile.js": {
+        "size": 1770
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\command-register.js": {
+        "size": 1664
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\command-usage.js": {
+        "size": 14072
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\dsaBlueprint\\countAllMaterial.js": {
+        "size": 0
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\balance.js": {
+        "size": 4991
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\beg.js": {
+        "size": 2175
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\daily.js": {
+        "size": 1637
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\deposit.js": {
+        "size": 4015
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\earnpassive.js": {
+        "size": 2321
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\give.js": {
+        "size": 5255
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\weekly.js": {
+        "size": 1682
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\economy\\withdraw.js": {
+        "size": 4799
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\blackjack.js": {
+        "size": 6333
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\coinflip.js": {
+        "size": 2509
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\dice.js": {
+        "size": 4637
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\extendedSlot.js": {
+        "size": 4890
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\extendedWheel.js": {
+        "size": 0
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\gamble.js": {
+        "size": 4592
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\hilo.js": {
+        "size": 5476
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\mango67.js": {
+        "size": 4326
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\multibet.js": {
+        "size": 5386
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\onlyup.js": {
+        "size": 5773
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\slot.js": {
+        "size": 4257
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\gambling\\wheel.js": {
+        "size": 5350
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\craftitem.js": {
+        "size": 2121
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\disassembleitem.js": {
+        "size": 2822
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\enchantitem.js": {
+        "size": 3117
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\getcrafteditem.js": {
+        "size": 2534
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\inventory.js": {
+        "size": 5593
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\itemcraftingstatus.js": {
+        "size": 2610
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\reforgeitem.js": {
+        "size": 3002
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\search.js": {
+        "size": 2957
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\useenchantscroll.js": {
+        "size": 3365
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\item\\useitem.js": {
+        "size": 4489
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\joke\\69.js": {
+        "size": 552
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\marketplace\\marketplacebuyitem.js": {
+        "size": 1240
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\marketplace\\marketplacecancel.js": {
+        "size": 1254
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\marketplace\\marketplacelistitem.js": {
+        "size": 1774
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\dbget.js": {
+        "size": 2370
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\dbset.js": {
+        "size": 2263
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\fn.js": {
+        "size": 2903
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\rank.js": {
+        "size": 2896
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\restart.js": {
+        "size": 838
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\say.js": {
+        "size": 426
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\moderation\\sfn.js": {
+        "size": 990
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\research\\completesearch.js": {
+        "size": 3205
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\research\\research.js": {
+        "size": 4059
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\research\\researchtree.js": {
+        "size": 2620
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\blacklistedips.js": {
+        "size": 1329
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\e621.js": {
+        "size": 3559
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\fn.js": {
+        "size": 3801
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\gemini.js": {
+        "size": 2051
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\missiontimer.js": {
+        "size": 1850
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\pvpevent.js": {
+        "size": 2503
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\r34.js": {
+        "size": 3507
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\sfn.js": {
+        "size": 1481
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\slash-register.js": {
+        "size": 2535
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\slash-remover.js": {
+        "size": 1670
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\spotify.js": {
+        "size": 2966
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\timezoneinfo.js": {
+        "size": 1362
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\weather.js": {
+        "size": 1968
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\Slash\\whitelistip.js": {
+        "size": 1708
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\dredleaderboard.js": {
+        "size": 1651
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\gemini.js": {
+        "size": 1822
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\help.js": {
+        "size": 9211
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\leaderboard.js": {
+        "size": 0
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\roll.js": {
+        "size": 1175
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\spotify.js": {
+        "size": 3052
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\testamount.js": {
+        "size": 1095
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\timezoneinfo.js": {
+        "size": 1091
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\utility\\weather.js": {
+        "size": 1820
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\config.js": {
+        "size": 6775
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\desktop.ini": {
+        "size": 114
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\extension\\background.js": {
+        "size": 3856
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\extension\\manifest.json": {
+        "size": 353
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\html\\admin_dashboard.html": {
+        "size": 1551
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\html\\admin_dashboard.index.js": {
+        "size": 27439
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\html\\dashboard.html": {
+        "size": 14710
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\html\\localhost_dashboard.html": {
+        "size": 5076
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\html\\spotify_callback.html": {
+        "size": 2993
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\icon\\ICON_CREDIT.md": {
+        "size": 477
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\icon\\search_cooldown.png": {
+        "size": 25771
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\icon\\search_quality.png": {
+        "size": 25771
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\icon\\skill_rerolling.png": {
+        "size": 16494
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\icon\\unlock_research.png": {
+        "size": 23251
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\LICENSE": {
+        "size": 1088
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\localhost.js": {
+        "size": 1838
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\middleware\\app.js": {
+        "size": 2833
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\middleware\\internal.js": {
+        "size": 1154
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\checkfilesize.js": {
+        "size": 2357
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\checkfileslines.js": {
+        "size": 2606
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\checkpath.js": {
+        "size": 2955
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\daysLeft.js": {
+        "size": 1226
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\json2sqlite3.js": {
+        "size": 973
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\quick-export-scan.js": {
+        "size": 421
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\misc\\scan-function-parameter.js": {
+        "size": 726
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\bootstrap\\css\\bootstrap.min.css": {
+        "size": 232023
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\bootstrap\\js\\bootstrap.bundle.min.js": {
+        "size": 80749
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\favicon.ico": {
+        "size": 1358601
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\forgotpass.html": {
+        "size": 2936
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\index.html": {
+        "size": 7415
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\brainrot.json": {
+        "size": 1089
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\de.json": {
+        "size": 960
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\emoji.json": {
+        "size": 663
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\en.json": {
+        "size": 853
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\es.json": {
+        "size": 957
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\example.json": {
+        "size": 853
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\fr.json": {
+        "size": 1013
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\kawaii.json": {
+        "size": 983
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\ru.json": {
+        "size": 1252
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\vi.json": {
+        "size": 1078
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\zh-CN.json": {
+        "size": 819
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\language\\zh-TW.json": {
+        "size": 825
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\privacy.html": {
+        "size": 6768
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\public\\terms.html": {
+        "size": 3901
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\admin_dashboard.index.js": {
+        "size": 275
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\auto-login.js": {
+        "size": 1055
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\change-password.js": {
+        "size": 1449
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\discord-auth.js": {
+        "size": 2664
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\dm.js": {
+        "size": 851
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\forgot-password.js": {
+        "size": 2330
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\get-profile.js": {
+        "size": 3539
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\get-ship-from-link.js": {
+        "size": 468
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\get-shiplist.js": {
+        "size": 371
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\index.js": {
+        "size": 766
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\login.js": {
+        "size": 5724
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\logout.js": {
+        "size": 539
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\management._.js": {
+        "size": 2914
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\privacy.js": {
+        "size": 246
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\app\\terms.js": {
+        "size": 242
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\cloudflare.js": {
+        "size": 1070
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\data.js": {
+        "size": 2048
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\index.js": {
+        "size": 771
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\localIP.js": {
+        "size": 256
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\MotdBackup.js": {
+        "size": 2086
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\setkey.js": {
+        "size": 804
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\spotify.js": {
+        "size": 2529
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\stats.js": {
+        "size": 840
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\routes\\internal\\tab-shutdown.js": {
+        "size": 600
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\changelogs.js": {
+        "size": 6055
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\currentVersion.js": {
+        "size": 1575
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\dashboard.js": {
+        "size": 1682
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\interactionCreate.js": {
+        "size": 15852
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\leavingMember.js": {
+        "size": 1110
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\missionTimer.js": {
+        "size": 3903
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\newJoinUser.js": {
+        "size": 2872
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\pvpEvent.js": {
+        "size": 2800
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\reactionRole.js": {
+        "size": 1733
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\regionTimer.js": {
+        "size": 1632
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\tasks\\shipTracker.js": {
+        "size": 9894
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\test.js": {
+        "size": 67
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\account\\dredarker.js": {
+        "size": 403
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\account\\first_achievement.js": {
+        "size": 410
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\account\\first_command.js": {
+        "size": 358
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\account\\first_step.js": {
+        "size": 342
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\economy\\billionaire.js": {
+        "size": 398
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\economy\\millionaire.js": {
+        "size": 392
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\economy\\trillionaire.js": {
+        "size": 399
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\index.js": {
+        "size": 2537
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\clan.js": {
+        "size": 11153
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\db.js": {
+        "size": 3436
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\deleteScheduler.js": {
+        "size": 2923
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\enchants\\epic\\looting.js": {
+        "size": 295
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\enchants\\index.js": {
+        "size": 2400
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\getcommand.js": {
+        "size": 5939
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\helper.js": {
+        "size": 257330
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\helper.test.js": {
+        "size": 233255
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\epic\\goldenmelon.js": {
+        "size": 1163
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\epic\\pineapple.js": {
+        "size": 2072
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\legendary\\doom_apple.js": {
+        "size": 1766
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\legendary\\starfruit.js": {
+        "size": 1468
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\mythical\\kiwi.js": {
+        "size": 1165
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\rare\\chocolate_bar.js": {
+        "size": 1125
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\uncommon\\apple.js": {
+        "size": 1126
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\fish\\common\\salmon.js": {
+        "size": 787
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\index.js": {
+        "size": 2021
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\bone.js": {
+        "size": 571
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\feather.js": {
+        "size": 621
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\green_leaf.js": {
+        "size": 575
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\plank.js": {
+        "size": 618
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\stick.js": {
+        "size": 600
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\stone.js": {
+        "size": 557
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\wood.js": {
+        "size": 571
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\adamantiteingot.js": {
+        "size": 721
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\adamatiteore.js": {
+        "size": 581
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\enchantedwood.js": {
+        "size": 578
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\mithrilore.js": {
+        "size": 592
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\mithriloreingot.js": {
+        "size": 704
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\legendary\\diamond.js": {
+        "size": 588
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\uncommon\\leather.js": {
+        "size": 626
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\uncommon\\slime.js": {
+        "size": 561
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\jobs\\beggar.js": {
+        "size": 122
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\jobs\\index.js": {
+        "size": 1965
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\logger.js": {
+        "size": 1317
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\marketplace.js": {
+        "size": 1291
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\path.js": {
+        "size": 1856
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\pets\\index.js": {
+        "size": 1995
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\quests\\common\\use_a_item.js": {
+        "size": 492
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\quests\\index.js": {
+        "size": 2434
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\ratelimit.js": {
+        "size": 266
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\crafting\\common\\bonemeal.js": {
+        "size": 223
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\crafting\\common\\stick.js": {
+        "size": 215
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\index.js": {
+        "size": 1868
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\melting\\mithrilIngot.js": {
+        "size": 212
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\index.js": {
+        "size": 2137
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\search_cooldown.js": {
+        "size": 493
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\search_quality.js": {
+        "size": 491
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\skill_rerolling.js": {
+        "size": 656
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\unlock_research.js": {
+        "size": 597
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\common\\xp_amplifier.js": {
+        "size": 542
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\epic\\duplicator.js": {
+        "size": 497
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\epic\\high_rolling.js": {
+        "size": 474
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\epic\\risk_buffer.js": {
+        "size": 537
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\epic\\tax_evasion.js": {
+        "size": 541
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\index.js": {
+        "size": 1997
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\legendary\\gambling_addicted.js": {
+        "size": 713
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\legendary\\market_dealer.js": {
+        "size": 542
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\legendary\\research_master.js": {
+        "size": 793
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\rare\\consumable_preservation.js": {
+        "size": 527
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\rare\\greed.js": {
+        "size": 497
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\rare\\loaded_dice.js": {
+        "size": 540
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\trade.js": {
+        "size": 2307
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\achievements.js": {
+        "size": 288
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\enchants.js": {
+        "size": 277
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\items.fish.js": {
+        "size": 787
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\items.js": {
+        "size": 499
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\pets.js": {
+        "size": 457
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\quests.js": {
+        "size": 337
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\researchs.js": {
+        "size": 306
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\skills.js": {
+        "size": 259
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator.js": {
+        "size": 6013
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\version.js": {
+        "size": 3244
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\wss.js": {
+        "size": 1940
+      }
+    },
+    "msgIds": [],
+    "added": [],
+    "modified": [],
+    "deleted": []
+  }
+}

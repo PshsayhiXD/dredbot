@@ -30,11 +30,11 @@ async function registerPrefixCommands(bot, selected = 'all') {
         continue;
       }
       bot.commands.set(command.name, command);
-      log(`[registerPrefixCommands] Loaded prefix command: ${command.name} (${command.id} [${command.aliases?.join(', ') || 'no aliases'}])`);
+      log(`[registerPrefixCommands] Loaded prefix command: ${command.name} (${command.id} [${command.aliases?.join(', ') || 'no aliases'}])`, "success");
     } catch (err) {
       log(`[registerPrefixCommands] Failed to load ${filePath}: ${err}`, 'error');
     }
   }
-  log(`[registerPrefixCommands] Loaded ${bot.commands.size} command(s).`);
+  log(`[registerPrefixCommands] Loaded ${bot.commands.size} command(s).`, "success");
 }
 export default registerPrefixCommands;
