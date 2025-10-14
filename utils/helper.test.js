@@ -3,7 +3,7 @@ import dns from 'dns';
 import os from 'os';
 import path from 'path';
 import dotenv from 'dotenv';
-dotenv.config({ path: '../../.env'});
+dotenv.config({ path: '../../.env' });
 import { decode, encode, BuildCmd, Item } from 'dsabp-js';
 import crypto from 'crypto';
 import { evaluate } from 'mathjs';
@@ -12,9 +12,10 @@ import Color from 'color';
 import chalkLib from 'chalk';
 import * as cheerio from 'cheerio';
 import { createCanvas, loadImage } from 'canvas';
+import { DateTime } from "luxon";
 
 import paths from './path.js';
-import config from '../../config.js';
+import config from '../config.js';
 import * as commandUsage from '../commands/command-usage.js';
 import * as getcommand from './getcommand.js';
 import log from './logger.js';
@@ -38,6 +39,7 @@ import {
   quickSaveUserIdData,
   loadDataByAccountCookie,
   loadUsernameByAccountCookie,
+  loadAllUsers,
 } from './db.js';
 import {
   getClanMemberCount,
@@ -61,20 +63,8 @@ import {
   getClanSettings,
   setClanIcon,
 } from './clan.js';
-import { 
-  getAllListings, 
-  getListing, 
-  saveListing, 
-  deleteListing 
-} from './marketplace.js';
-import { 
-  saveTrade, 
-  getTrade, 
-  getAllTrades, 
-  getUserTrades, 
-  deleteTrade, 
-  cleanUpExpiredTrades 
-} from './trade.js';
+import { getAllListings, getListing, saveListing, deleteListing } from './marketplace.js';
+import { saveTrade, getTrade, getAllTrades, getUserTrades, deleteTrade, cleanUpExpiredTrades } from './trade.js';
 
 export const clan = {
   getClanMemberCount,
@@ -134,6 +124,7 @@ import { enchants } from './enchants/index.js';
 import { recipes } from './recipes/index.js';
 import { jobs } from './jobs/index.js';
 import { pets } from './pets/index.js';
+
 const originalLookup = dns.lookup;
 dns.lookup = function (hostname, options, callback) {
   if (typeof options === 'function') {
@@ -146,8 +137,18 @@ dns.lookup = function (hostname, options, callback) {
 
 let cooldowns = {};
 let schedule;
+const ONE_DAY = 1000 * 60 * 60 * 24;
+const ONE_WEEK = ONE_DAY * 7;
+const ONE_MONTH = ONE_DAY * 30;
+const ONE_YEAR = ONE_DAY * 365;
 
-export const encryptAccount = async account => {
+export const selfWrap = (func) => {
+  return function (...args) {
+    return func.apply(func, args);
+  };
+};
+
+export const encryptAccount = selfWrap(async function encryptAccount(account) {
   const mk = crypto.randomBytes(32);
   const p1 = mk.slice(0, 16);
   const p2 = mk.slice(16, 24);
@@ -188,9 +189,9 @@ export const encryptAccount = async account => {
   const mt = mc.getAuthTag();
   const tagField = Buffer.concat([at, miv, mk2, mt]).toString('hex');
 
-  return { iv: ivField, dta: ad.toString('hex'), tag: tagField, metaA, metaB, map: md.toString('hex') };
-};
-export const decryptAccount = async payload => {
+  return successMsg(`randomNumber`, '', 0o0, { iv: ivField, dta: ad.toString('hex'), tag: tagField, metaA, metaB, map: md.toString('hex') });
+});
+export const decryptAccount = selfWrap(async function decryptAccount(payload) {
   const { iv, data, tag, metaA, metaB, map } = typeof payload === 'string' ? JSON.parse(payload) : payload;
   const ivb = Buffer.from(iv, 'hex');
   const tb = Buffer.from(tag, 'hex');
@@ -238,17 +239,17 @@ export const decryptAccount = async payload => {
   adc.setAuthTag(at);
   const dec = Buffer.concat([adc.update(Buffer.from(data, 'hex')), adc.final()]);
   return JSON.parse(dec.toString('utf8'));
-};
+});
 
-export const randomNumber = (min = 0, max = 1) => {
+export const randomNumber = selfWrap(async function randomNumber(min = 0, max = 1) {
   if (max < min) [min, max] = [max, min];
   const range = max - min;
   const bytes = crypto.randomBytes(6);
   const num = parseInt(bytes.toString('hex'), 16);
   const fraction = num / 0xffffffffffff;
   return min + fraction * range;
-};
-export const gambleRandomNumber = (min = 0, max = 1, multiplier = 1) => {
+});
+export const gambleRandomNumber = selfWrap(async function gambleRandomNumber(min = 0, max = 1, multiplier = 1) {
   if (max < min) [min, max] = [max, min];
   const range = max - min;
   const bytes = crypto.randomBytes(6);
@@ -256,18 +257,20 @@ export const gambleRandomNumber = (min = 0, max = 1, multiplier = 1) => {
   const fraction = num / 0xffffffffffff;
   const result = min + fraction * range;
   return result * multiplier;
-};
+});
 
-export const key = () => ({ ...process.env });
-export const fileexists = async p => {
+export const key = selfWrap(async function key() {
+  ({ ...process.env });
+});
+export const fileexists = selfWrap(async function fileexists(p) {
   try {
     await fs.access(p);
     return true;
   } catch {
     return false;
   }
-};
-export const getFileContent = async filePath => {
+});
+export const getFileContent = selfWrap(async function getFileContent(filePath) {
   try {
     const content = await fs.promises.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
@@ -280,8 +283,8 @@ export const getFileContent = async filePath => {
   } catch {
     return null;
   }
-};
-export const clearGetFileContentFiles = (intervalMs = 10000, maxAgeMs = 30000) => {
+});
+export const clearGetFileContentFiles = selfWrap(async function clearGetFileContentFiles(intervalMs = 10000, maxAgeMs = 30000) {
   setInterval(async () => {
     try {
       const files = await fs.promises.readdir(paths.temp);
@@ -295,37 +298,53 @@ export const clearGetFileContentFiles = (intervalMs = 10000, maxAgeMs = 30000) =
       await Promise.all(oldFiles.map(f => fs.promises.unlink(path.join(paths.temp, f))));
     } catch {}
   }, intervalMs);
-};
+});
 
-const errorMsg = (func, reason, code = 0o0, rest = {}) => {
-  const r = reason.replace(/\.$/gm, "");
+export const errorMsg = selfWrap(async function errorMsg(func, reason, code = 0o0, rest = {}) {
+  if (typeof code !== 'number') {
+    rest = code;
+    code = 0;
+  }
+  const r = reason.replace(/\.$/gm, "").split("\n").map(line => line.charAt(0).toUpperCase() + line.slice(1)).join("\n");
   return {
+    ok: false,
     success: false,
     valid: false,
     msg: `[-] ${func}: ${r}`,
     error: `[-] ${func}: ${r}`,
     code,
-    ...rest
+    ...rest,
   };
-};
-const throwError = (func, reason) => {
-  if (!reason && func.startsWith("[-]")) {
+});
+export const throwError = selfWrap(async function throwError(func, reason) {
+  let msg;
+  if (!reason && func.startsWith('[-]')) {
     const m = func.match(/\[-\]\s*([^:]+):\s*(.*)/);
-    if (m) return new Error(`[-] ${m[1]}: ${m[2]}`);
+    if (m) {
+      msg = m[2];
+      func = m[1];
+    } else msg = "Unknown error";
+  } else msg = reason || "Unknown error";
+  msg = msg.replace(/\.$/gm, "").split("\n").map(line => line.charAt(0).toUpperCase() + line.slice(1)).join("\n");
+  throw new Error(`[-] ${func}: ${msg}`);
+});
+export const successMsg = selfWrap(async function successMsg(func, msg, code = 0o0, rest = {}) {
+  if (typeof code !== "number") {
+    rest = code;
+    code = 0;
   }
-  throw new Error(`[-] ${func}: ${reason}`);
-};
-const successMsg = (func, msg, code = 0o0, rest = {}) => {
-  const m = msg.replace(/\.$/gm, "");
+  const dotted = msg.replace(/\.$/gm, "");
+  const m = dotted.split("\n").map(line => line.charAt(0).toUpperCase() + line.slice(1)).join("\n");
   return {
+    ok: true,
     success: true,
     valid: true,
     msg: `[+] ${func}: ${m}`,
     code,
-    ...rest
+    ...rest,
   };
-};
-export const parseAmount = input => {
+});
+export const parseAmount = selfWrap(async function parseAmount(input) {
   if (typeof input !== 'string') return NaN;
   const multipliers = {
     k: 1e3,
@@ -387,9 +406,9 @@ export const parseAmount = input => {
   } catch {
     return NaN;
   }
-};
-export const parseBet = async (input, bal) => {
-  if (!input) return { bet: 0, err: '?' };
+});
+export const parseBet = selfWrap(async function parseBet(input, bal) {
+  if (!input) return errorMsg(`${this.name}`, 'No bet amount provided.', 0o0, { bet: 0 });
   const suffixMap = {
     k: 1e3,
     m: 1e6,
@@ -414,8 +433,8 @@ export const parseBet = async (input, bal) => {
     vd: 1e63,
   };
   input = input.toLowerCase().trim();
-  if (input === 'all') return { bet: bal };
-  if (input === 'half') return { bet: Math.floor(bal / 2) };
+  if (input === 'all') return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: bal });
+  if (input === 'half') return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bal / 2) });
   input = input.replace(/(\d+(?:\.\d+)?)([a-z]+)/gi, (_, num, suf) => {
     const mul = suffixMap[suf] || 1;
     return `(${num}*${mul})`;
@@ -424,13 +443,13 @@ export const parseBet = async (input, bal) => {
   try {
     bet = evaluate(input);
   } catch {
-    return { bet: 0, err: '[-] parseBet: Invalid bet expression (or cant parse).' };
+    return errorMsg(`${this.name}`, 'Invalid bet format.', 0o0, { bet: 0 });
   }
-  if (typeof bet !== 'number' || isNaN(bet) || bet <= 0) return { bet: 0, err: '[-] parseBet: Invalid bet amount' };
-  if (bet > bal) return { bet: 0, err: '[-] parseBet: Insufficient balance' };
-  return { bet: Math.floor(bet) };
-};
-export const formatAmount = (num, options = {}) => {
+  if (typeof bet !== 'number' || isNaN(bet) || bet <= 0) return errorMsg(`${this.name}`, 'Bet must be a positive number.', 0o0, { bet: 0 });
+  if (bet > bal) return errorMsg(`${this.name}`, 'Insufficient balance for this bet.', 0o0, { bet: 0 });
+  return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bet) });
+});
+export const formatAmount = selfWrap(async function formatAmount(num, options = {}) {
   if (typeof num !== 'number' || isNaN(num)) return 'NaN';
   const {
     decimals = 2, // How many decimal places to keep (1.00 or 1)
@@ -480,34 +499,41 @@ export const formatAmount = (num, options = {}) => {
   if (!padZeros) base = base.replace(/\.00$/, '');
   const final = `${prefix}${base}`;
   return isNegative ? (bold ? `(**-${final}**)` : parentheses ? `(${final})` : `-${final}`) : bold ? `(**${final}**)` : final;
-};
-export const isInteger = num => {
+});
+export const isInteger = selfWrap(async function isInteger(num) {
   return Number.isInteger(num);
-};
-export const formatTime = ms => {
-  const suffixes = [
-    { unit: 3600, label: 'h' },
-    { unit: 60, label: 'm' },
-    { unit: 1, label: 's' },
-  ];
+});
+export const formatTime = selfWrap(async function formatTime(ms) {
+  if (typeof ms !== "number" || isNaN(ms) || ms <= 0) return "0s";
   let seconds = Math.floor(ms / 1000);
+  const y = Math.floor(seconds / (365 * 24 * 3600));
+  seconds %= 365 * 24 * 3600;
+  const mo = Math.floor(seconds / (30 * 24 * 3600));
+  seconds %= 30 * 24 * 3600;
+  const d = Math.floor(seconds / (24 * 3600));
+  seconds %= 24 * 3600;
+  const h = Math.floor(seconds / 3600);
+  seconds %= 3600;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
   const parts = [];
-  for (const { unit, label } of suffixes) {
-    const value = Math.floor(seconds / unit);
-    if (value > 0 || (label === 's' && parts.length === 0)) parts.push(`${value}${label}`);
-    seconds %= unit;
-  }
-  return parts.join(' ');
-};
-export const formatDate = async date => {
+  if (y) parts.push(`${y}y`);
+  if (mo) parts.push(`${mo}mo`);
+  if (d) parts.push(`${d}d`);
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}m`);
+  if (s || parts.length === 0) parts.push(`${s}s`);
+  return parts.join(" ");
+});
+export const formatDate = selfWrap(async function formatDate(date) {
   return date.toISOString().slice(0, 10);
-};
-export const parseDate = async str => {
+});
+export const parseDate = selfWrap(async function parseDate(str) {
   const [year, month, day] = str.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day));
-};
-export const testEnv = async (envName = 'all') => {
-  return `Test already done. function is deprecated`;
+});
+export const testEnv = selfWrap(async function testEnv(envName = 'all') {
+  return `Test already done. function is deprecated.`;
   if (envName === 'all') {
     const envs = await envAll();
     const results = [];
@@ -523,23 +549,40 @@ export const testEnv = async (envName = 'all') => {
   } else {
     try {
       const value = await readEnv(envName);
-      return { key: envName, value, ok: true };
+      return successMsg(this.name, ``, 0, {
+        key: envName,
+        value,
+        ok: true,
+      });
     } catch (err) {
-      return { key: envName, value: null, ok: false, error: err.message };
+      return successMsg(this.name, ``, 0, {
+        key: envName,
+        value: null,
+        ok: false,
+        error: err.message,
+      });
     }
   }
-};
-export const isSameDay = async (dateA, dateB) => {
+});
+export const isSameDay = selfWrap(async function isSameDay(dateA, dateB) {
   return formatDate(dateA) === formatDate(dateB);
-};
-export const newToken = (length = 16) => {
+});
+export const newToken = selfWrap(async function newToken(length = 16) {
   return crypto.randomBytes(length).toString('hex').slice(0, length);
-};
-export const toBase64 = async string => Buffer.from(string, 'utf-8').toString('base64');
-export const fromBase64 = async string => Buffer.from(string, 'base64').toString('utf-8');
-export const toBinary = async number => number.toString(2);
-export const fromBinary = async string => parseInt(string, 2);
-export const toRoman = async number => {
+});
+export const toBase64 = selfWrap(async function toBase64(string) {
+  return Buffer.from(string, 'utf-8').toString('base64');
+});
+export const fromBase64 = selfWrap(async function fromBase64(string) {
+  return Buffer.from(string, 'base64').toString('utf-8');
+});
+export const toBinary = selfWrap(async function toBinary(number) {
+  return number.toString(2);
+});
+export const fromBinary = selfWrap(async function fromBinary(string) {
+  return parseInt(string, 2);
+});
+export const toRoman = selfWrap(async function toRoman(number) {
   if (typeof number !== 'number' || number <= 0) return '';
   const romanMap = [
     [1000, 'M'],
@@ -564,8 +607,8 @@ export const toRoman = async number => {
     }
   }
   return s;
-};
-export const fromRoman = async roman => {
+});
+export const fromRoman = selfWrap(async function fromRoman(roman) {
   if (typeof roman !== 'string' || roman.length === 0) return 0;
   const romanMap = {
     I: 1,
@@ -585,8 +628,8 @@ export const fromRoman = async roman => {
     prev = curr;
   }
   return total;
-};
-export const toSlug = async string => {
+});
+export const toSlug = selfWrap(async function toSlug(string) {
   const result = string
     .toLowerCase()
     .trim()
@@ -594,15 +637,15 @@ export const toSlug = async string => {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
   return result;
-};
-export const findAllObjectByValue = (obj, value) => {
+});
+export const findAllObjectByValue = selfWrap(async function findAllObjectByValue(obj, value) {
   return Object.keys(obj).filter(k => obj[k] === value);
-};
-export const findAllArrayByValue = (arr, key, value) => {
+});
+export const findAllArrayByValue = selfWrap(async function findAllArrayByValue(arr, key, value) {
   if (!Array.isArray(arr)) throwError('[-] First argument must be an array.');
   return arr.filter(item => item?.[key] === value);
-};
-export const deepFindAllObjectKeyPaths = (obj, targetKey) => {
+});
+export const deepFindAllObjectKeyPaths = selfWrap(async function deepFindAllObjectKeyPaths(obj, targetKey) {
   const results = [];
   const search = (current, path = []) => {
     if (typeof current !== 'object' || current === null) return;
@@ -619,38 +662,85 @@ export const deepFindAllObjectKeyPaths = (obj, targetKey) => {
   };
   search(obj);
   return results;
-};
-export const unicode = str => {
+});
+export const unicode = selfWrap(async function unicode(str) {
   return [...str].map(char => `U+${char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')} (${char})`).join('\n');
-};
-export const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-export const convertImageToBase64 = async url => {
-  if (!url) return { base64: null, error: '[-] convertImageToBase64: No URL provided.' };
+});
+export const wait = selfWrap(async function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+});
+export const convertImageToBase64 = selfWrap(async function convertImageToBase64(url) {
+  if (!url)
+    return errorMsg(this.name, `No URL provided.`, 0, {
+      base64: null,
+    });
   const res = await fetch(url);
   const buf = Buffer.from(await res.arrayBuffer());
   const sizeLimit = 10 * 1024 * 1024;
   const contentLength = Number(res.headers.get('content-length')) || buf.length;
-  if (contentLength > sizeLimit) return { base64: null, warn: '**Image too large**. Max 10MB.' };
+  if (contentLength > sizeLimit)
+    return errorMsg(this.name, `Image too large.`, 0, { base64: null });
   const resized = await sharp(buf).resize({ width: 512, height: 512, fit: 'inside' }).png().toBuffer();
   const base64 = resized.toString('base64');
-  return { base64: `data:image/png;base64,${base64}` };
-};
-export const convertColorToHex = input => {
+  return successMsg(this.name, ``, 0, {
+    base64: `data:image/png;base64,${base64}`,
+  });
+});
+export const convertColorToHex = selfWrap(async function convertColorToHex(input) {
   try {
     return Color(input).hex().toLowerCase();
   } catch {
     return '#000000';
   }
-};
-export const isSafeNumber = n => {
+});
+export const isSafeNumber = selfWrap(async function isSafeNumber(n) {
   return typeof n === 'number' && Number.isFinite(n) && Number.isInteger(n) && n > 0 && n <= Number.MAX_SAFE_INTEGER;
-};
-export const chalk = (text, color = 'white') => {
+});
+export const chalk = selfWrap(async function chalk(text, color = 'white') {
   if (!chalkLib[color]) color = 'white';
   return chalkLib[color](text);
-};
+});
+export const gradientMsg = selfWrap(async function gradientMsg(msg, opts = {}) {
+  const {
+    type = "info",          // "info" | "error" | "success" | "custom"
+    colors = [[0, 0, 255], [0, 255, 255]], // gradient stops as [r,g,b]
+    gradient = false,       // toggle gradient on/off
+    timestamp = false,      // prepend [HH:MM:SS]
+  } = opts;
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  const str = typeof msg === "object" ? JSON.stringify(msg, null, 2) : String(msg);
+  let out = str;
+  if (gradient && colors.length > 1) {
+    const chars = Array.from(str);
+    const len = chars.length;
+    const segs = colors.length - 1;
+    out = chars
+      .map((ch, i) => {
+        const t = (i / (len - 1)) * segs;
+        const seg = Math.min(Math.floor(t), segs - 1);
+        const localT = t - seg;
+        const [r1, g1, b1] = colors[seg];
+        const [r2, g2, b2] = colors[seg + 1];
+        const r = clamp(r1 + (r2 - r1) * localT);
+        const g = clamp(g1 + (g2 - g1) * localT);
+        const b = clamp(b1 + (b2 - b1) * localT);
+        return chalk.rgb(r, g, b)(ch);
+      })
+      .join("");
+  } else {
+    if (type === "error") out = chalk.red(str);
+    else if (type === "success") out = chalk.green(str);
+    else if (type === "info") out = chalk.blue(str);
+    else out = chalk.white(str);
+  }
+  if (timestamp) {
+    const now = new Date().toLocaleTimeString("en-GB");
+    out = `[${now}] ${out}`;
+  }
+  return out;
+});
 
-export const waitForMessages = async (channel, userId, options = {}) => {
+export const waitForMessages = selfWrap(async function waitForMessages(channel, userId, options = {}) {
   const { steps, timeout = 30000, stepTimeout = 15000, prompt = [], validate = [], ephemeral = true, interaction = null, boldError = true } = options;
   if (!channel || !userId) throwError('[-] waitForMessages: missing channel or userId.');
   if (!Array.isArray(steps) || steps.length === 0) throwError("[-] waitForMessages: 'steps' must be a non-empty array.");
@@ -658,7 +748,7 @@ export const waitForMessages = async (channel, userId, options = {}) => {
   const res = [],
     start = Date.now();
   for (let i = 0; i < steps.length; i++) {
-    if (Date.now() - start > timeout) throwError(`[-] waitForMessages: total timeout (${timeout}ms) at step ${i + 1}.`);
+    if (Date.now() - start > timeout) throwError(`${this.name}`, `total timeout (${timeout}ms) at step ${i + 1}.`);
     if (prompt[i]) {
       const p = prompt[i];
       channel.type === 1 || channel.type === 'DM' ? await user.send(p) : await channel.send(p);
@@ -686,7 +776,7 @@ export const waitForMessages = async (channel, userId, options = {}) => {
     res.push(msg);
   }
   return res;
-};
+});
 export const flagMap = {
   crossposted: 1 << 0,
   isCrosspost: 1 << 1,
@@ -700,27 +790,27 @@ export const flagMap = {
   suppressNotifications: 1 << 12,
   isVoiceMessage: 1 << 13,
 };
-export const parseFlags = opts => {
+export const parseFlags = selfWrap(async function parseFlags(opts) {
   let flags = 0;
   for (const k in opts) if (opts[k] && flagMap[k]) flags |= flagMap[k];
   return flags;
-};
-export const formatFlags = bitfield => {
+});
+export const formatFlags = selfWrap(async function formatFlags(bitfield) {
   const out = {};
   for (const k in flagMap) out[k] = (bitfield & flagMap[k]) !== 0;
   return out;
-};
-export const runCommand = async (bot, message, content) => {
+});
+export const runCommand = selfWrap(async function runCommand(bot, message, content) {
   if (message.author.bot) return;
-  if (!bot) throwError(`[-] runCommand: Expected bot parameter (${bot}).`);
+  if (!bot) throwError(`${this.name}`, `Expected bot parameter (${bot}).`);
   bot.emit('messageCreate', {
     ...message,
     content,
     author: message.author,
   });
-};
+});
 
-export const Schedule = async () => {
+export const Schedule = selfWrap(async function Schedule() {
   try {
     const response = await fetch('https://drednot.io/pvp-events', {
       headers: { Accept: 'application/json' },
@@ -737,9 +827,9 @@ export const Schedule = async () => {
   } catch (error) {
     throwError('[Schedule] Error fetching schedule:', error.message);
   }
-};
+});
 Schedule();
-export const pvpEvent = async type => {
+export const pvpEvent = selfWrap(async function pvpEvent(type) {
   await Schedule();
   await wait(2555);
   if (typeof type === 'object') type = JSON.stringify(type);
@@ -767,32 +857,32 @@ export const pvpEvent = async type => {
   }
   const dayEvents = schedule.filter(({ date }) => date === type);
   dayEvents.length ? dayEvents.map(({ date }) => date) : Error(`No events found for ${type}`);
-};
+});
 
-export const newTab = async shipId => {
-  if (!shipId) throwError(`[-] newTab: unexpected shipId "${shipId}".`);
+export const newTab = selfWrap(async function newTab(shipId) {
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
   if (!Array.isArray(data)) throwError('active_ship data is not an array!');
   if (data.includes(shipId)) throwError(`Ship "${shipId}" already exists.`);
   data.push(shipId);
   await writeData(paths.database.active_ship, data);
-};
-export const removeTab = async shipId => {
-  if (!shipId) throwError(`[-] removeTab: unexpected shipId "${shipId}".`);
+});
+export const removeTab = selfWrap(async function removeTab(shipId) {
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
   if (!Array.isArray(data)) throwError('active_ship data is not an array!');
   const index = data.indexOf(shipId);
   if (index === -1) throwError(`Ship "${shipId}" does not exist.`);
   data.splice(index, 1);
   await writeData(paths.database.active_ship, data);
-};
-export const findTab = async shipId => {
-  if (!shipId) throwError(`[-] findTab: unexpected shipId "${shipId}".`);
+});
+export const findTab = selfWrap(async function findTab(shipId) {
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
   if (!Array.isArray(data)) throwError('active_ship data is not an array!');
   return data.includes(shipId);
-};
-export const fetchShipList = async () => {
+});
+export const fetchShipList = selfWrap(async function fetchShipList() {
   try {
     const res = await fetch('https://drednot.io/shiplist?server=0', {
       headers: {
@@ -814,8 +904,8 @@ export const fetchShipList = async () => {
     log(`[fetchShipList]: fetch error: ${err.message}`, 'error');
     return null;
   }
-};
-export const fetchShipFromLink = async link => {
+});
+export const fetchShipFromLink = selfWrap(async function fetchShipFromLink(link) {
   try {
     const res = await fetch(link, {
       headers: {
@@ -823,7 +913,7 @@ export const fetchShipFromLink = async link => {
         Cookie: `anon_key=${config.DREDNOT_ANON_KEY}`,
       },
     });
-    if (!res.ok) return { valid: false };
+    if (!res.ok) return errorMsg(this.name, ``, 0);
     const html = await res.text();
     const $ = cheerio.load(html);
     const ogTitle = $('meta[property="og:title"]').attr('content') || '';
@@ -832,13 +922,16 @@ export const fetchShipFromLink = async link => {
       .replace(/^(Invite:|Ship:)\s*/, '')
       .replace(/\s*[-|]\s*drednot\.io$/i, '')
       .trim();
-    if (!shipName || shipName === 'Deep Space Airships') return { valid: false };
-    return { valid: true, shipName, shipImage: ogImage };
+    if (!shipName || shipName === 'Deep Space Airships') return errorMsg(this.name, ``, 0);
+    return successMsg(this.name, ``, 0, {
+      shipName,
+      shipImage: ogImage,
+    });
   } catch {
-    return { valid: false };
+    return errorMsg(this.name, ``, 0);
   }
-};
-export const drawShipsCard = async (ships, updateInterval, totalPlayers, maxPlayers) => {
+});
+export const drawShipsCard = selfWrap(async function drawShipsCard(ships, updateInterval, totalPlayers, maxPlayers) {
   const width = 900;
   const padding = 20;
   const maxHeight = 2000;
@@ -918,22 +1011,36 @@ export const drawShipsCard = async (ships, updateInterval, totalPlayers, maxPlay
     ctx.fillText(`ShipID: ${ship.ship_id}`, textX, y + boxHeight - 20);
   }
   return canvas;
-};
+});
 
-export const getMissionState = () => {
+export const getMissionState = selfWrap(async function getMissionState() {
   const openDur = config.MISSION_CLOSE_DURATION;
   const closeDur = config.MISSION_OPEN_DURATION;
   const cycle = openDur + closeDur;
   const firstOpenTs = config.MISSION_START_TS;
   const now = Math.floor(Date.now() / 1000);
 
-  if (now < firstOpenTs) return { state: 'CLOSED', timeLeft: firstOpenTs - now, nextChange: firstOpenTs };
+  if (now < firstOpenTs)
+    return successMsg(this.name, ``, 0, {
+      state: 'CLOSED',
+      timeLeft: firstOpenTs - now,
+      nextChange: firstOpenTs,
+    });
 
   const elapsed = (now - firstOpenTs) % cycle;
-  if (elapsed < openDur) return { state: 'OPEN', timeLeft: openDur - elapsed, nextChange: now + (openDur - elapsed) };
-  return { state: 'CLOSED', timeLeft: cycle - elapsed, nextChange: now + (cycle - elapsed) };
-};
-export const getFutureMission = (count = 3) => {
+  if (elapsed < openDur)
+    return successMsg(this.name, ``, 0, {
+      state: 'OPEN',
+      timeLeft: openDur - elapsed,
+      nextChange: now + (openDur - elapsed),
+    });
+  return successMsg(this.name, ``, 0, {
+    state: 'CLOSED',
+    timeLeft: cycle - elapsed,
+    nextChange: now + (cycle - elapsed),
+  });
+});
+export const getFutureMission = selfWrap(async function getFutureMission(count = 3) {
   const openDur = config.MISSION_CLOSE_DURATION;
   const closeDur = config.MISSION_OPEN_DURATION;
   const cycle = openDur + closeDur;
@@ -949,9 +1056,9 @@ export const getFutureMission = (count = 3) => {
     list.push({ open: o, close: c });
   }
   return list;
-};
+});
 
-export const getDrednotLeaderboard = async (category, by = 'pilot', page = 1, formatter = 'formatDrednotLeaderboard') => {
+export const getDrednotLeaderboard = selfWrap(async function getDrednotLeaderboard(category, by = 'pilot', page = 1, formatter = 'formatDrednotLeaderboard') {
   const Map = {
     archives: 'archive',
     archived: 'archive',
@@ -991,7 +1098,8 @@ export const getDrednotLeaderboard = async (category, by = 'pilot', page = 1, fo
     'loot wins': 'pvp_elimination_loot',
   };
   const cat = Map[category?.toLowerCase()];
-  if (!cat) return { ok: false, err: '[-] getDrednotLeaderboard: Invalid category.' };
+  if (!cat)
+    return errorMsg(this.name, `Invalid category.`, 0);
   const statusPath = paths.database.scrapedo;
   const cachePath = paths.database.leaderboardCache;
   const cacheKey = `${cat}_${by}_${page}`;
@@ -1019,13 +1127,17 @@ export const getDrednotLeaderboard = async (category, by = 'pilot', page = 1, fo
     state.next = null;
     state.avgIntervalMs = null;
   }
-  if (state.next && Date.now() < state.next) return { ok: false, err: `[-] getDrednotLeaderboard: Rate limited. Try again in ${formatTime(state.next - Date.now())}.` };
-  if (state.used + 5 > state.limit) return { ok: false, err: '[-] getDrednotLeaderboard: API credit limit reached.' };
+  if (state.next && Date.now() < state.next)
+    return errorMsg(this.name, `Rate limited. Try again in ${formatTime(state.next - Date.now())}.`, 0);
+  if (state.used + 5 > state.limit)
+    return successMsg(this.name, `API credit limit reached.`, 0);
   const proxy = 'https://api.scrape.do/?' + `token=${readEnv('SCRAPE_DO_API_KEY')}` + '&url=' + encodeURIComponent(`https://drednot.io/leaderboard?cat=${cat}&by=${by}&p=${page}`) + '&render=true';
   const checkFetchLimits = (fetchPerMin, fetchPerDay, maxPerMin = 60, maxPerDay = state.limit) => {
-    if (fetchPerMin > maxPerMin) return { ok: false, err: `Rate limit per minute exceeded (${fetchPerMin}/${maxPerMin})` };
-    if (fetchPerDay > maxPerDay) return { ok: false, err: `Rate limit per day exceeded (${fetchPerDay}/${maxPerDay})` };
-    return { ok: true };
+    if (fetchPerMin > maxPerMin)
+      return errorMsg(this.name, `Rate limit per minute exceeded (${fetchPerMin}/${maxPerMin}).`, 0);
+    if (fetchPerDay > maxPerDay)
+      return errorMsg(this.name, `Rate limit per day exceeded (${fetchPerDay}/${maxPerDay}).`, 0);
+    return successMsg(this.name, ``, 0);
   };
   try {
     const res = await fetch(proxy);
@@ -1057,11 +1169,12 @@ export const getDrednotLeaderboard = async (category, by = 'pilot', page = 1, fo
   } catch (e) {
     state.errors++;
     await fs.writeFile(statusPath, JSON.stringify(state, null, 2));
-    return { ok: false, err: e.message };
+    return errorMsg(this.name, e.message, 0);
   }
-};
-export const formatDrednotLeaderboard = (data, by = 'pilot') => {
-  if (!data.ok) return { ok: false, err: data.err };
+});
+export const formatDrednotLeaderboard = selfWrap(async function formatDrednotLeaderboard(data, by = 'pilot') {
+  if (!data.ok)
+    return errorMsg(this.name, data.err, 0);
   const $ = cheerio.load(data.html);
   const rows = $('table.leaderboard tr');
   const leaderboard = {};
@@ -1077,8 +1190,7 @@ export const formatDrednotLeaderboard = (data, by = 'pilot') => {
     if (by.toLowerCase() === 'ship') entry.shipScore = $(cells[3])?.text().trim() || null;
     leaderboard[rank] = entry;
   });
-  return {
-    ok: true,
+  return successMsg(this.name, ``, 0, {
     meta: {
       timestamp: new Date(data.ts).toLocaleString(),
       page: data.page,
@@ -1091,17 +1203,17 @@ export const formatDrednotLeaderboard = (data, by = 'pilot') => {
       nextFetchAt: new Date(data.nextAt).toLocaleString(),
     },
     leaderboard,
-  };
-};
+  });
+});
 
-export const getSpotifyToken = async () => {
+export const getSpotifyToken = selfWrap(async function getSpotifyToken() {
   const accessToken = await readEnv('SPOTIFY_ACCESS_TOKEN');
   const expiresIn = Number(await readEnv('SPOTIFY_EXPIRES_IN'));
   const obtainedAt = Number(await readEnv('SPOTIFY_OBTAINED_AT'));
   if (!accessToken || !expiresIn || !obtainedAt || Date.now() > obtainedAt + (expiresIn - 60) * 1000) return await refreshSpotifyToken();
   return accessToken;
-};
-export const refreshSpotifyToken = async () => {
+});
+export const refreshSpotifyToken = selfWrap(async function refreshSpotifyToken() {
   const refreshToken = await readEnv('SPOTIFY_REFRESH_TOKEN');
   const clientId = await readEnv('SPOTIFY_CLIENT_ID');
   const clientSecret = await readEnv('SPOTIFY_CLIENT_ID_SECRET');
@@ -1122,8 +1234,8 @@ export const refreshSpotifyToken = async () => {
   await writeEnv('SPOTIFY_EXPIRES_IN', String(data.expires_in));
   await writeEnv('SPOTIFY_OBTAINED_AT', String(Date.now()));
   return data.access_token;
-};
-export const searchSpotify = async (songName, artistName = '', limit = 1) => {
+});
+export const searchSpotify = selfWrap(async function searchSpotify(songName, artistName = '', limit = 1) {
   const token = await getSpotifyToken();
   let q = songName;
   if (!q) throwError('[-] songName is required.');
@@ -1135,8 +1247,8 @@ export const searchSpotify = async (songName, artistName = '', limit = 1) => {
   const data = await res.json();
   if (!data.tracks || !data.tracks.items.length) return [];
   return data.tracks.items;
-};
-export const resolveDependencies = async (depStr, message) => {
+});
+export const resolveDependencies = selfWrap(async function resolveDependencies(depStr, message) {
   const dep = {};
   if (typeof depStr !== 'string' || !depStr.trim()) return dep;
   const deps = depStr.trim().split(/\s+/);
@@ -1158,12 +1270,12 @@ export const resolveDependencies = async (depStr, message) => {
     else if (getcommand?.[name]) dep[name] = getcommand[name];
     else if (deleteSchedule?.[name]) dep[name] = deleteSchedule[name];
     else if (trade?.[name]) dep[name] = trade[name];
-    else throwError(`[-] resolveDependencies: Unknown dependency '${name}'`);
+    else throwError(`${this.name}`, `Unknown dependency '${name}'`);
   }
   return dep;
-};
+});
 
-export const getLocalIP = () => {
+export const getLocalIP = selfWrap(async function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const interfaceName in interfaces) {
     if (interfaces.hasOwnProperty(interfaceName)) {
@@ -1174,11 +1286,11 @@ export const getLocalIP = () => {
     }
   }
   return null;
-};
-export const getProxyUrl = () => {
+});
+export const getProxyUrl = selfWrap(async function getProxyUrl() {
   return config.PROXY_URL || null;
-};
-export const getNgrokUrl = async () => {
+});
+export const getNgrokUrl = selfWrap(async function getNgrokUrl() {
   try {
     const res = await fetch('http://127.0.0.1:4040/api/tunnels');
     if (!res.ok) throwError('Failed to fetch ngrok tunnel info.');
@@ -1189,9 +1301,9 @@ export const getNgrokUrl = async () => {
     log(`[-] getNgrokUrl: ${err}`);
     return 'No data.';
   }
-};
+});
 
-export const getTax = async (amount = 0, user) => {
+export const getTax = selfWrap(async function getTax(amount = 0, user) {
   if (config.TAX === false) return 0;
   let rate = typeof config.TAX === 'number' ? config.TAX : 15;
   if (user) {
@@ -1200,146 +1312,174 @@ export const getTax = async (amount = 0, user) => {
     if (typeof boost.ignoreTaxPercent === 'number') rate = rate * (1 - boost.ignoreTaxPercent);
   }
   return Math.floor(amount * (rate / 100));
-};
+});
 
-export const initUserObject = async user => {
+export const initUserObject = selfWrap(async function initUserObject(user) {
   let data = await loadData(user);
-  if (typeof data !== 'object' || data === null) data = {};
+  if (typeof data !== "object" || data === null) data = {};
   const added = [];
   const repaired = [];
-  const ensure = (obj, key, defaultValue = {}) => {
-    if (typeof obj[key] !== 'object' || obj[key] === null) {
-      obj[key] = defaultValue;
+  const getPath = (obj, path) => path.split(".").reduce((o, k) => (o ? o[k] : undefined), obj);
+  const delPath = (obj, path) => {
+    const keys = path.split(".");
+    const last = keys.pop();
+    const parent = keys.reduce((o, k) => (o ? o[k] : undefined), obj);
+    if (parent && last in parent) delete parent[last];
+  };
+  const migrate = (srcPath, dstPath) => {
+    const val = getPath(data, srcPath);
+    if (val !== undefined) {
+      const keys = dstPath.split(".");
+      let cur = data;
+      for (let i = 0; i < keys.length - 1; i++) cur = cur[keys[i]] = cur[keys[i]] || {};
+      if (!cur[keys.at(-1)]) cur[keys.at(-1)] = val;
+      delPath(data, srcPath);
+      repaired.push(`${srcPath}→${dstPath}`);
+    }
+  };
+  const ensure = (obj, key, def = {}) => {
+    if (typeof obj[key] !== "object" || obj[key] === null) {
+      obj[key] = def;
       added.push(key);
     }
     return obj[key];
   };
-  const setDefault = (obj, key, defaultValue) => {
+  const setDefault = (obj, key, def, condition = null) => {
     if (obj[key] === undefined) {
-      obj[key] = defaultValue;
+      obj[key] = def;
       added.push(key);
     } else if (obj[key] === null) {
-      obj[key] = defaultValue;
+      obj[key] = def;
+      repaired.push(key);
+    } else if (typeof condition === "function" && !condition(obj[key])) {
+      obj[key] = def;
       repaired.push(key);
     }
   };
 
-  const balance = ensure(data, 'balance');
-  setDefault(balance, 'dredcoin', 0);
+  migrate("daily", "streak.daily");
+  migrate("weekly", "streak.weekly");
+  migrate("monthly", "streak.monthly");
+  migrate("yearly", "streak.yearly");
+  migrate("account.daily", "streak.daily");
 
-  setDefault(data, 'username', user);
+  const balance = ensure(data, "balance");
+  setDefault(balance, "dredcoin", 0);
 
-  const exp = ensure(data, 'exp');
-  setDefault(exp, 'exp', 0);
-  setDefault(exp, 'lv', 1);
-  setDefault(exp, 'expNeeded', getExpNeeded(exp.lv));
+  setDefault(data, "username", user, (v) => typeof v === "string" && v.length > 0);
 
-  setDefault(data, 'command_executed', 1);
-  setDefault(data, 'Permission', '');
-  setDefault(data, 'blackjack', false);
-  setDefault(data, 'multibet', false);
-  setDefault(data, 'hilo', false);
-  setDefault(data, 'onlyup', false);
-  setDefault(data, 'dice', false);
+  const exp = ensure(data, "exp");
+  setDefault(exp, "exp", 0);
+  setDefault(exp, "lv", 1);
+  setDefault(exp, "expNeeded", getExpNeeded(exp.lv));
 
-  const onlyupHistory = ensure(data, 'onlyupHistory');
-  setDefault(onlyupHistory, 'count', 0);
-  setDefault(onlyupHistory, 'lastReset', Date.now());
+  setDefault(data, "command_executed", 1);
+  setDefault(data, "Permission", []);
+  if (typeof data.Permission === "string" || !Array.isArray(data.Permission)) {
+    data.Permission = await normalizePerms(data.Permission);
+    repaired.push("Permission (normalized)");
+  }
+  setDefault(data, "blackjack", false);
+  setDefault(data, "multibet", false);
+  setDefault(data, "hilo", false);
+  setDefault(data, "onlyup", false);
+  setDefault(data, "dice", false);
 
-  const account = ensure(data, 'account');
-  setDefault(account, 'status', 'N-Logged-in');
+  const onlyupHistory = ensure(data, "onlyupHistory");
+  setDefault(onlyupHistory, "count", 0);
+  setDefault(onlyupHistory, "lastReset", Date.now());
 
-  const streak = ensure(data, 'streak');
-  const daily = ensure(streak, 'daily');
-  setDefault(daily, 'streak', 0);
-  setDefault(daily, 'lastClaimed', 0);
-  const weekly = ensure(streak, 'weekly');
-  setDefault(weekly, 'streak', 0);
-  setDefault(weekly, 'lastClaimed', 0);
+  const account = ensure(data, "account");
+  setDefault(account, "status", "N-Logged-in");
+  setDefault(account, "pendingLogin", {})
 
-  setDefault(data, 'dailyQuests', {});
-  setDefault(data, 'weeklyQuests', {});
-  setDefault(data, 'monthlyQuests', {});
-  setDefault(data, 'yearlyQuests', {});
+  const streak = ensure(data, "streak");
+  const daily = ensure(streak, "daily");
+  setDefault(daily, "streak", 0);
+  setDefault(daily, "lastClaim", Date.now(), (v) => v <= Date.now() || v >= Date.now());
+  const weekly = ensure(streak, "weekly");
+  setDefault(weekly, "streak", 0);
+  setDefault(weekly, "lastClaim", Date.now(), (v) => v <= Date.now() || v >= Date.now());
+  const monthly = ensure(streak, "monthly");
+  setDefault(monthly, "streak", 0);
+  setDefault(monthly, "lastClaim", Date.now(), (v) => v <= Date.now() || v >= Date.now());
+  const yearly = ensure(streak, "yearly");
+  setDefault(yearly, "streak", 0);
+  setDefault(yearly, "lastClaim", Date.now(), (v) => v <= Date.now() || v >= Date.now());
 
-  setDefault(data, 'equipment', {});
+  setDefault(data, "dailyQuests", {});
+  setDefault(data, "weeklyQuests", {});
+  setDefault(data, "monthlyQuests", {});
+  setDefault(data, "yearlyQuests", {});
 
-  const bank = ensure(data, 'bank');
-  setDefault(bank, 'balance', 0);
+  setDefault(data, "equipment", {});
 
-  const passiveIncome = ensure(data, 'passiveIncome');
-  setDefault(passiveIncome, 'lastClaimed', Date.now());
+  const bank = ensure(data, "bank");
+  setDefault(bank, "balance", 0);
 
-  const multiplier = ensure(data, 'multiplier');
-  setDefault(multiplier, 'exp', 1);
-  setDefault(multiplier, 'dredcoin', 1);
+  const passiveIncome = ensure(data, "passiveIncome");
+  setDefault(passiveIncome, "lastClaimed", Date.now(), (v) => (v <= Date.now() || v >= Date.now()));
 
-  setDefault(data, 'prestige', 0);
-  setDefault(data, 'inventory', {});
+  const multiplier = ensure(data, "multiplier");
+  setDefault(multiplier, "exp", 1);
+  setDefault(multiplier, "dredcoin", 1);
 
-  const boost = ensure(data, 'boost');
-  ensure(boost, 'cooldown');
-  ensure(boost, 'passiveIncome');
-  setDefault(boost, 'dredcoin', []);
+  setDefault(data, "prestige", 0);
+  setDefault(data, "inventory", {});
 
-  const skills = ensure(data, 'skills');
-  setDefault(skills, 'skills', {});
-  setDefault(skills, 'rerollable', false);
+  const boost = ensure(data, "boost");
+  ensure(boost, "cooldown");
+  ensure(boost, "passiveIncome");
+  setDefault(boost, "dredcoin", []);
 
-  const researchs = ensure(data, 'research');
-  setDefault(researchs, 'complete', []);
-  setDefault(researchs, 'queue', []);
-  setDefault(researchs, 'unlock', false);
+  const skills = ensure(data, "skills");
+  setDefault(skills, "skills", {});
+  setDefault(skills, "rerollable", false);
 
-  setDefault(data, 'achievement', {});
+  const researchs = ensure(data, "research");
+  setDefault(researchs, "complete", []);
+  setDefault(researchs, "queue", []);
+  setDefault(researchs, "unlock", false);
 
-  const quests = ensure(data, 'quests');
-  setDefault(quests, 'active', []);
-  setDefault(quests, 'complete', []);
+  setDefault(data, "achievement", {});
 
-  setDefault(data, 'globalCooldown', {});
+  const quests = ensure(data, "quests");
+  setDefault(quests, "active", []);
+  setDefault(quests, "complete", []);
 
-  setDefault(data, 'stat', {});
+  setDefault(data, "globalCooldown", {});
 
-  setDefault(data, 'craftingTask', {});
-  setDefault(data, 'cookingTask', {});
-  setDefault(data, 'meltingTask', {});
+  setDefault(data, "stat", {});
 
-  setDefault(data, 'hatching', {});
+  setDefault(data, "craftingTask", {});
+  setDefault(data, "cookingTask", {});
+  setDefault(data, "meltingTask", {});
+
+  setDefault(data, "hatching", {});
+
   await saveData(user, data);
+  return successMsg(this.name, ``, 0, { 
+    user, added, repaired 
+  });
+});
 
-  return { user, added, repaired };
-};
-
-export const isValidBlueprint = async bpStr => {
+export const isValidBlueprint = selfWrap(async function isValidBlueprint(bpStr) {
   try {
     const bp = await decode(bpStr);
     if (!bp.commands || !bp.commands.length)
-      return {
-        valid: false,
-        reason: 'No commands',
-      };
+      return errormsg(this.name, `No commands.`, 0);
     for (const cmd of bp.commands) {
       if (cmd instanceof BuildCmd && Item[cmd.item] === undefined)
-        return {
-          valid: false,
-          reason: `Invalid item: ${cmd.item}`,
-        };
+        return successMsg(this.name, `Invalid item: ${cmd.item}.`, 0);
     }
-    return {
-      valid: true,
-      reason: 'OK',
-    };
+    return successMsg(this.name, ``, 0);
   } catch (err) {
-    return {
-      valid: false,
-      reason: 'Decode error',
-    };
+    return errorMsg(this.name, `decode error:\n${err}`, 0);
   }
-};
-export const bluePrintCountMaterials = async bpStr => {
+});
+export const bluePrintCountMaterials = selfWrap(async function bluePrintCountMaterials(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] bluePrintCountMaterials: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`bluePrintCountMaterials`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const counts = {};
   for (const cmd of bp.commands) {
@@ -1348,11 +1488,13 @@ export const bluePrintCountMaterials = async bpStr => {
       counts[k] = (counts[k] || 0) + 1;
     }
   }
-  return { counts };
-};
-export const bluePrintReplaceMaterial = async (bpStr, fromItem, toItem) => {
+  return successMsg(this.name, ``, {
+    counts,
+  });
+});
+export const bluePrintReplaceMaterial = selfWrap(async function bluePrintReplaceMaterial(bpStr, fromItem, toItem) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] bluePrintReplaceMaterial: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`bluePrintReplaceMaterial`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   for (const cmd of bp.commands) {
     if (cmd instanceof BuildCmd && cmd.item === fromItem) {
@@ -1361,10 +1503,10 @@ export const bluePrintReplaceMaterial = async (bpStr, fromItem, toItem) => {
   }
   const encoded = await encode(bp);
   return `DSA:${encoded}`;
-};
-export const blueprintListMaterials = async bpStr => {
+});
+export const blueprintListMaterials = selfWrap(async function blueprintListMaterials(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] listMaterials: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`listMaterials`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const set = new Set();
   for (const cmd of bp.commands) {
@@ -1373,17 +1515,17 @@ export const blueprintListMaterials = async bpStr => {
     }
   }
   return [...set];
-};
-export const bluePrintRemoveMaterial = async (bpStr, targetItem) => {
+});
+export const bluePrintRemoveMaterial = selfWrap(async function bluePrintRemoveMaterial(bpStr, targetItem) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] bluePrintRemoveMaterial: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`bluePrintRemoveMaterial`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   bp.commands = bp.commands.filter(cmd => !(cmd instanceof BuildCmd && cmd.item === targetItem));
   return 'DSA:' + (await encode(bp));
-};
-export const blueprintMostUsedMaterial = async bpStr => {
+});
+export const blueprintMostUsedMaterial = selfWrap(async function blueprintMostUsedMaterial(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] blueprintMostUsedMaterial: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`blueprintMostUsedMaterial`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const counts = {};
   for (const cmd of bp.commands) {
@@ -1400,14 +1542,14 @@ export const blueprintMostUsedMaterial = async bpStr => {
       maxMat = mat;
     }
   }
-  return {
+  return successMsg(this.name, ``, {
     material: maxMat,
     count: maxCount,
-  };
-};
-export const blueprintPreview = async (bpStr, y = 0) => {
+  });
+});
+export const blueprintPreview = selfWrap(async function blueprintPreview(bpStr, y = 0) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] blueprintPreview: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`blueprintPreview`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const grid = {};
   for (const cmd of bp.commands) {
@@ -1433,10 +1575,10 @@ export const blueprintPreview = async (bpStr, y = 0) => {
     out += row + '\n';
   }
   return out.trim();
-};
-export const blueprintCountCmdTypes = async bpStr => {
+});
+export const blueprintCountCmdTypes = selfWrap(async function blueprintCountCmdTypes(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] blueprintCountCmdTypes: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`blueprintCountCmdTypes`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const out = { build: 0, erase: 0, message: 0, other: 0 };
   for (const cmd of bp.commands) {
@@ -1446,20 +1588,20 @@ export const blueprintCountCmdTypes = async bpStr => {
     else out.other++;
   }
   return out;
-};
-export const blueprintResourceCost = async bpStr => {
+});
+export const blueprintResourceCost = selfWrap(async function blueprintResourceCost(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] blueprintResourceCost: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`blueprintResourceCost`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const map = {};
   for (const cmd of bp.commands) {
     if (cmd instanceof BuildCmd) map[Item[cmd.item]] = (map[Item[cmd.item]] || 0) + 1;
   }
   return map;
-};
-export const bluePrintRandomizeItems = async bpStr => {
+});
+export const bluePrintRandomizeItems = selfWrap(async function bluePrintRandomizeItems(bpStr) {
   const isValid = (await isValidBlueprint(bpStr)).valid;
-  if (!isValid) return `[-] bluePrintRandomizeItems: Invalid blueprint.`;
+  if (!isValid) return errorMsg(`bluePrintRandomizeItems`, `Invalid blueprint.`);
   const bp = await decode(bpStr);
   const itemList = Object.keys(Item).filter(k => !isNaN(Item[k]));
   for (const cmd of bp.commands) {
@@ -1469,13 +1611,18 @@ export const bluePrintRandomizeItems = async bpStr => {
     }
   }
   return 'DSA:' + (await encode(bp));
-};
-export const blueprintCompare = async (bpStr1, bpStr2) => {
+});
+export const blueprintCompare = selfWrap(async function blueprintCompare(bpStr1, bpStr2) {
   const isValid1 = (await isValidBlueprint(bpStr1)).valid;
   const isValid2 = (await isValidBlueprint(bpStr2)).valid;
-  if (!isValid1) return `[-] compareBlueprints: First blueprint is invalid.`;
-  if (!isValid2) return `[-] compareBlueprints: Second blueprint is invalid.`;
-  if (bpStr1 === bpStr2) return { added: [], removed: [], changed: [] };
+  if (!isValid1) return errorMsg(`compareBlueprints`, `First blueprint is invalid.`);
+  if (!isValid2) return errorMsg(`compareBlueprints`, `Second blueprint is invalid.`);
+  if (bpStr1 === bpStr2)
+    return successMsg(this.name, ``, {
+      added: [],
+      removed: [],
+      changed: [],
+    });
   const bp1 = await decode(bpStr1);
   const bp2 = await decode(bpStr2);
   const map1 = new Map();
@@ -1497,23 +1644,23 @@ export const blueprintCompare = async (bpStr1, bpStr2) => {
   for (const [k, item1] of map1) {
     if (!map2.has(k)) removed.push({ pos: k, item: Item[item1] });
   }
-  return {
+  return successMsg(this.name, ``, {
     added,
     removed,
     changed,
-  };
-};
+  });
+});
 
-export const givePermanentBoost = async (user, { dredcoin = 0, exp = 0 }) => {
-  if (!(await isValidUser(user))) throwError(`[-] applyPermanentBoost: User ${user} not found.`);
+export const givePermanentBoost = selfWrap(async function givePermanentBoost(user, { dredcoin = 0, exp = 0 }) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (dredcoin !== 0) data.multiplier.dredcoin += dredcoin;
   if (exp !== 0) data.multiplier.exp += exp;
   await saveData(user, data);
-};
-export const giveDredcoinBoost = async (user, multiplier, duration) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveDredcoinBoost: User ${user} not found.`);
+});
+export const giveDredcoinBoost = selfWrap(async function giveDredcoinBoost(user, multiplier, duration) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const expiresAt = Date.now() + duration;
@@ -1522,18 +1669,18 @@ export const giveDredcoinBoost = async (user, multiplier, duration) => {
     expiresAt,
   });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     multiplier,
     expiresAt,
-  };
-};
+  });
+});
 // with boosts / dredcoin multipliers
-export const giveDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveDredcoin: User ${user} not found.`);
+export const giveDredcoin = selfWrap(async function giveDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount)) throwError(`[-] giveDredcoin: ${amount} is not a valid number.`);
+  if (!isInteger(amount)) throwError(`${this.name}`, `${amount} is not a valid number.`);
   const tax = await getTax(amount, user);
   const taxedAmount = amount - tax;
   const { totalMultiplier: boostMultiplier } = await getActiveBoosts(user, 'dredcoin');
@@ -1546,7 +1693,7 @@ export const giveDredcoin = async (user, amount) => {
   const { max } = await isMaxCoin(user);
   data.balance.dredcoin = Math.min(data.balance.dredcoin + boostedAmount, max || Infinity);
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     gave: taxedAmount,
     to: user,
     tax,
@@ -1555,23 +1702,27 @@ export const giveDredcoin = async (user, amount) => {
     boostMultiplier,
     combinedMultiplier,
     newBalance: data.balance.dredcoin,
-  };
-};
+  });
+});
 // without boosts / dredcoin multiplier
-export const addDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] addDredcoin: User ${user} not found.`);
+export const addDredcoin = selfWrap(async function addDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount) || amount < 0) throwError(`[-] addDredcoin: Invalid amount '${amount}'.`);
+  if (!isInteger(amount) || amount < 0) throwError(`${this.name}`, `Invalid amount '${amount}'.`);
   let data = await loadData(user);
   if (typeof data.balance.dredcoin !== 'number') data.balance.dredcoin = 0;
   const { max } = await isMaxCoin(user);
   data.balance.dredcoin = Math.min(data.balance.dredcoin + amount, max || Infinity);
   await saveData(user, data);
-  return { user, added: amount, newBalance: data.balance.dredcoin };
-};
-export const removeDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeDredcoin: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    added: amount,
+    newBalance: data.balance.dredcoin,
+  });
+});
+export const removeDredcoin = selfWrap(async function removeDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
   if (!isInteger(amount)) return false;
@@ -1581,86 +1732,88 @@ export const removeDredcoin = async (user, amount) => {
   if (current < amount) return false;
   balance.dredcoin = current - amount;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     removed: amount,
     remaining: balance.dredcoin,
     newBalance: balance.dredcoin,
     user,
-  };
-};
-export const setDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] setDredcoin: User ${user} not found.`);
+  });
+});
+export const setDredcoin = selfWrap(async function setDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount)) throwError(`[-] setDredcoin: ${amount} is not a valid number.`);
+  if (!isInteger(amount)) throwError(`${this.name}`, `${amount} is not a valid number.`);
   const { max } = await isMaxCoin(user);
   const clamped = Math.max(0, Math.min(amount, max));
   const data = await loadData(user);
   const balance = data.balance;
   balance.dredcoin = clamped;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     setTo: clamped,
     max,
     user,
-  };
-};
+  });
+});
 
-export const getDredcoin = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getDredcoin: User ${user} not found.`);
+export const getDredcoin = selfWrap(async function getDredcoin(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   return data.balance.dredcoin;
-};
-export const getBankBalance = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getBankBalance: User ${user} not found.`);
+});
+export const getBankBalance = selfWrap(async function getBankBalance(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   return data.bank.balance;
-};
+});
 
-export const applyDredcoinMultiplier = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] applyDredcoinMultipler: User ${user} not found.`);
+export const applyDredcoinMultiplier = selfWrap(async function applyDredcoinMultiplier(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const applied = amount * data.multiplier.dredcoin * data.prestige;
   return applied;
-};
-export const applyExpMultiplier = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] applyExpMultipler: User ${user} not found.`);
+});
+export const applyExpMultiplier = selfWrap(async function applyExpMultiplier(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const applied = amount * data.multiplier.exp * data.prestige;
   return applied;
-};
+});
 
-export const isMaxCoin = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] isMaxCoin: User ${user} not found.`);
+export const isMaxCoin = selfWrap(async function isMaxCoin(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (config.MAX_DREDCOIN === false) {
-    return {
+    return successMsg(this.name, ``, {
+      user,
       isMax: false,
       current: data.balance.dredcoin,
       max: Number.MAX_SAFE_INTEGER,
-    };
+    });
   }
   let maxAmount = config.MAX_DREDCOIN;
   if (typeof maxAmount === 'string') {
     try {
       maxAmount = parseAmount(maxAmount);
     } catch (err) {
-      throwError(`[-] isMaxCoin: Failed to parse MAX_DREDCOIN string: ${config.MAX_DREDCOIN}`);
+      throwError(`${this.name}`, `Failed to parse MAX_DREDCOIN string: ${config.MAX_DREDCOIN}`);
     }
   }
-  return {
+  return successMsg(this.name, ``, {
+    user,
     isMax: data.balance.dredcoin >= maxAmount,
     current: data.balance.dredcoin,
     max: maxAmount,
-  };
-};
-export const isMaxBank = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] isMaxBank: User ${user} not found.`);
+  });
+});
+export const isMaxBank = selfWrap(async function isMaxBank(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   let maxAmount = config.MAX_BANK;
@@ -1669,30 +1822,32 @@ export const isMaxBank = async user => {
     try {
       maxAmount = parseAmount(maxAmount);
     } catch (err) {
-      throwError(`[-] isMaxBank: Failed to parse MAX_BANK string: ${config.MAX_BANK}`);
+      throwError(`${this.name}`, `Failed to parse MAX_BANK string: ${config.MAX_BANK}`);
     }
   }
-  return {
+  return successMsg(this.name, ``, {
+    user,
     isMax: data.bank.balance >= maxAmount,
     current: data.bank.balance,
     max: maxAmount,
-  };
-};
-export const isMaxLevel = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] isMaxLevel: User ${user} not found.`);
+  });
+});
+export const isMaxLevel = selfWrap(async function isMaxLevel(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const lv = data?.exp?.lv ?? 0;
   let maxAmount = config.MAX_LEVEL;
   if (maxAmount === false) maxAmount = Number.MAX_SAFE_INTEGER;
-  return {
+  return successMsg(this.name, ``, {
+    user,
     isMax: lv >= maxAmount,
     current: lv,
     max: maxAmount,
-  };
-};
+  });
+});
 
-export const getExpNeeded = async (level, user) => {
+export const getExpNeeded = selfWrap(async function getExpNeeded(level, user) {
   let base = config.EXPNEEDED_BASE || 100;
   let multiplier = 1;
   if (config.EXPNEEDED_MULTIPLIER_AFTER_LEVEL) {
@@ -1711,9 +1866,9 @@ export const getExpNeeded = async (level, user) => {
     return Math.floor((base * prestigeScale) / debuff);
   }
   return Math.floor(base);
-};
-export const getUserExpData = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getUserExpData: User ${user} not found.`);
+});
+export const getUserExpData = selfWrap(async function getUserExpData(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!data.exp || typeof data.exp !== 'object') data.exp = { lv: 1, exp: 0 };
@@ -1724,10 +1879,21 @@ export const getUserExpData = async user => {
   const prestige = Number.isFinite(data?.prestige) ? data.prestige : 0;
   const Needed = getExpNeeded(level, user);
   const needed = typeof data.exp.expNeeded === 'number' ? data.exp.expNeeded : Needed;
-  return { data, current: exp, Needed, level, expNeeded: needed };
-};
-export const canLevelUp = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] canLevelUp: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    data: {
+      lv: data.exp.lv,
+      exp: data.exp.exp,
+      prestige,
+    },
+    current: exp,
+    Needed,
+    level,
+    expNeeded: needed,
+  });
+});
+export const canLevelUp = selfWrap(async function canLevelUp(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const { current, level } = await getUserExpData(user);
   let tempLevel = level,
@@ -1739,9 +1905,9 @@ export const canLevelUp = async user => {
     count++;
   }
   return count > 0 ? count : false;
-};
-export const forceLevelUp = async (user, amount = 1) => {
-  if (!(await isValidUser(user))) throwError(`[-] forceLevelUp: User ${user} not found.`);
+});
+export const forceLevelUp = selfWrap(async function forceLevelUp(user, amount = 1) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
   if (!Number.isFinite(amount) || amount <= 0) throwError('[-] forceLevelUp: Invalid amount.');
@@ -1774,7 +1940,9 @@ export const forceLevelUp = async (user, amount = 1) => {
   data.exp.lv = level;
   data.exp.exp = exp;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
+    user,
+    amount,
     type: 'forceLevelUp',
     leveledUp,
     oldLevel,
@@ -1786,25 +1954,27 @@ export const forceLevelUp = async (user, amount = 1) => {
     exp,
     expNeeded: newExpNeeded,
     reachedMaxLevel: (await isMaxLevel(user)).isMax,
-  };
-};
-export const levelUpIfCan = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] levelUpIfCan: User ${user} not found.`);
+  });
+});
+export const levelUpIfCan = selfWrap(async function levelUpIfCan(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const levelUps = await canLevelUp(user);
   if (!levelUps)
-    return {
+    return successMsg(this.name, ``, {
+      user,
       type: 'levelUpIfCan',
       leveledUp: 0,
-    };
+    });
   const result = await forceLevelUp(user, levelUps);
-  return {
+  return successMsg(this.name, ``, {
+    user,
     type: 'levelUpIfCan',
     ...result,
-  };
-};
-export const giveExp = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveExp: User ${user} not found.`);
+  });
+});
+export const giveExp = selfWrap(async function giveExp(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!data.exp || typeof data.exp !== 'object') data.exp = { lv: 1, exp: 0 };
@@ -1840,7 +2010,8 @@ export const giveExp = async (user, amount) => {
     bonusLevelChance -= 100;
   }
   if (bonusLevels > 0) await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
+    user,
     type: 'gain',
     gained: appliedAmount,
     oldLevel,
@@ -1852,13 +2023,13 @@ export const giveExp = async (user, amount) => {
     bonusExp,
     reachedMaxLevel,
     bonusLevels,
-  };
-};
-export const removeExp = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeExp: User ${user} not found.`);
+  });
+});
+export const removeExp = selfWrap(async function removeExp(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount) || amount <= 0) throwError(`[-] removeExp: Invalid amount.`);
+  if (!isInteger(amount) || amount <= 0) throwError(`${this.name}`, `Invalid amount.`);
   const { data, current, needed, level: oldLevel } = await getUserExpData(user);
   let level = oldLevel;
   let exp = current - amount;
@@ -1873,7 +2044,8 @@ export const removeExp = async (user, amount) => {
   data.exp.lv = level;
   data.exp.exp = exp;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
+    user,
     type: 'remove',
     removed: amount,
     oldLevel,
@@ -1882,10 +2054,10 @@ export const removeExp = async (user, amount) => {
     newLevel: level,
     newExp: exp,
     newExpNeeded: await getExpNeeded(level, user),
-  };
-};
-export const giveExpBoost = async (user, multiplier, duration) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveXpBoost: User ${user} not found.`);
+  });
+});
+export const giveExpBoost = selfWrap(async function giveExpBoost(user, multiplier, duration) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const expiresAt = Date.now() + duration;
@@ -1894,28 +2066,29 @@ export const giveExpBoost = async (user, multiplier, duration) => {
     expiresAt,
   });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     multiplier,
     expiresAt,
-  };
-};
-export const getExp = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getExp: User ${user} not found.`);
+  });
+});
+export const getExp = selfWrap(async function getExp(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const current = (data.exp.xp ??= 0);
   const level = (data.exp.lv ??= 1);
   const needed = (data.exp.expNeeded ??= getExpNeeded(level));
-  return {
+  return successMsg(this.name, ``, {
+    user,
     current: current,
     needed: needed,
     level: level,
-  };
-};
+  });
+});
 
-export const prestigeIfCan = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] prestigeIfCan: User ${user} not found.`);
+export const prestigeIfCan = selfWrap(async function prestigeIfCan(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const oldPrestige = Number.isFinite(data?.prestige) ? data.prestige : 0;
@@ -1937,17 +2110,17 @@ export const prestigeIfCan = async user => {
   data.exp.expNeeded = newExpNeeded;
   data.prestige = newPrestige > levels.length ? levels.length : newPrestige;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     type: 'prestigeIfCan',
     user,
     newPrestige: data.prestige,
     newLevel: 1,
     newExp: 0,
     newExpNeeded,
-  };
-};
-export const prestige = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] prestige: User ${user} not found.`);
+  });
+});
+export const prestige = selfWrap(async function prestige(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const oldPrestige = Number.isFinite(data.prestige) ? data.prestige : 0;
@@ -1959,30 +2132,30 @@ export const prestige = async user => {
   data.exp.expNeeded = newExpNeeded;
   data.prestige = newPrestige;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     type: 'prestige',
     user,
     newPrestige,
     newExp: 0,
     newLevel: 1,
     newExpNeeded,
-  };
-};
-export const getPrestige = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getPrestige: User ${user} not found.`);
+  });
+});
+export const getPrestige = selfWrap(async function getPrestige(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const prestige = data?.prestige;
   return Number.isFinite(prestige) && prestige >= 0 ? prestige : 0;
-};
+});
 
-export const isExpired = boost => {
+export const isExpired = selfWrap(async function isExpired(boost) {
   const now = Date.now();
   const expired = typeof boost.expiresAt !== 'number' || boost.expiresAt <= now;
   return expired;
-};
-export const deleteAllExpiredBoosts = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] deleteAllExpiredBoosts: Invalid user ${user}`);
+});
+export const deleteAllExpiredBoosts = selfWrap(async function deleteAllExpiredBoosts(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   let summary = {};
@@ -1997,25 +2170,25 @@ export const deleteAllExpiredBoosts = async user => {
     }
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     deleted: summary,
-  };
-};
-export const deleteExpiredBoosts = async (user, boostType) => {
-  if (!(await isValidUser(user))) throwError(`[-] deleteExpiredBoosts: Invalid user ${user}`);
+  });
+});
+export const deleteExpiredBoosts = selfWrap(async function deleteExpiredBoosts(user, boostType) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!data.boost || !Array.isArray(data.boost[boostType])) return;
   data.boost[boostType] = data.boost[boostType].filter(boost => !isExpired(boost));
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     deleted: boostType,
-  };
-};
-export const getActiveBoosts = async (user, boostType) => {
-  if (!(await isValidUser(user))) throwError(`[-] getActiveBoosts: User ${user} not found.`);
+  });
+});
+export const getActiveBoosts = selfWrap(async function getActiveBoosts(user, boostType) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!data.boost) data.boost = {};
@@ -2027,16 +2200,16 @@ export const getActiveBoosts = async (user, boostType) => {
   await saveData(user, data);
   const totalMultiplier = activeBoosts.reduce((acc, b) => acc * b.multiplier, 1);
   const timeLeft = activeBoosts.length > 0 ? Math.max(...activeBoosts.map(b => b.expiresAt - now)) : 0;
-  return {
+  return successMsg(this.name, ``, {
     user,
     active: activeBoosts.length > 0,
     boosts: activeBoosts,
     totalMultiplier,
     timeLeft,
-  };
-};
-export const giveBoost = async (user, type, multiplier, duration) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveBoost: User ${user} not found.`);
+  });
+});
+export const giveBoost = selfWrap(async function giveBoost(user, type, multiplier, duration) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const expiresAt = Date.now() + duration;
@@ -2045,16 +2218,16 @@ export const giveBoost = async (user, type, multiplier, duration) => {
     expiresAt,
   });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     type,
     multiplier,
     expiresAt,
-  };
-};
+  });
+});
 
-export const giveLuck = async (user, category, multiplier, durationMs) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveLuck: User ${user} not found.`);
+export const giveLuck = selfWrap(async function giveLuck(user, category, multiplier, durationMs) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!data.boost) data.boost = {};
@@ -2066,7 +2239,7 @@ export const giveLuck = async (user, category, multiplier, durationMs) => {
   const expiresAt = Date.now() + durationMs;
   data.boost.luck[category].push({ multiplier: boostedMultiplier, expiresAt });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     category,
     baseMultiplier: multiplier,
@@ -2074,10 +2247,10 @@ export const giveLuck = async (user, category, multiplier, durationMs) => {
     flatBonus,
     percentBonus,
     expiresAt,
-  };
-};
-export const getLuck = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getLuck: User ${user} not found.`);
+  });
+});
+export const getLuck = selfWrap(async function getLuck(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const now = Date.now();
@@ -2089,20 +2262,24 @@ export const getLuck = async user => {
     }
   }
   return luckData;
-};
+});
 
-export const giveLuckBoost = async (user, multiplier, durationMs) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveLuckBoost: User ${user} not found.`);
+export const giveLuckBoost = selfWrap(async function giveLuckBoost(user, multiplier, durationMs) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!Array.isArray(data.boost.luck_global)) data.boost.luck_global = [];
   const expiresAt = Date.now() + durationMs;
   data.boost.luck_global.push({ multiplier, expiresAt });
   await saveData(user, data);
-  return { user, multiplier, expiresAt };
-};
-export const applyLuckBoost = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] applyLuckBoost: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    multiplier,
+    expiresAt,
+  });
+});
+export const applyLuckBoost = selfWrap(async function applyLuckBoost(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const now = Date.now();
@@ -2118,16 +2295,16 @@ export const applyLuckBoost = async user => {
       }
     }
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     globalMultiplier,
     categoryMultipliers,
     get: category => categoryMultipliers[category] || globalMultiplier || 1,
-  };
-};
+  });
+});
 
-export const givePassiveIncomeBoost = async (user, multiplier, duration) => {
-  if (!(await isValidUser(user))) throwError(`[-] applyPassiveIncomeBoost: User ${user} not found.`);
+export const givePassiveIncomeBoost = selfWrap(async function givePassiveIncomeBoost(user, multiplier, duration) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   data.boost.passiveIncome.push({
@@ -2135,21 +2312,21 @@ export const givePassiveIncomeBoost = async (user, multiplier, duration) => {
     expiresAt: Date.now() + duration,
   });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     multiplier,
     expiresAt: Date.now() + duration,
-  };
-};
-export const earnPassiveIncome = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] earnPassiveIncome: User ${user} not found.`);
+  });
+});
+export const earnPassiveIncome = selfWrap(async function earnPassiveIncome(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const now = Date.now();
   const data = await loadData(user);
-  const last = data.passiveIncome.lastClaimed;
+  const last = data.passiveIncome.lastClaim;
   const seconds = Math.floor((now - last) / 1000);
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 1) return `[-] earnPassiveIncome: Not enough time has passed.`;
+  if (minutes < 1) return errorMsg(`earnPassiveIncome`, `Not enough time has passed.`);
   const prestige = Number.isFinite(data.prestige) ? data.prestige : 1;
   const coinBase = config.PASSIVE_INCOME.BASE_PER_MINUTE || 10;
   const expBase = config.PASSIVE_INCOME.EXP_BASE_PER_MINUTE || 5;
@@ -2169,10 +2346,10 @@ export const earnPassiveIncome = async user => {
   const earnedExp = Math.floor(await applyExpMultiplier(user, rawExp));
   data.balance.dredcoin += earnedCoins;
   data.exp.exp += earnedExp;
-  data.passiveIncome.lastClaimed = now;
+  data.passiveIncome.lastClaim = now;
   await saveData(user, data);
   const leveledUp = await levelUpIfCan(user);
-  return {
+  return successMsg(this.name, ``, {
     user,
     seconds,
     minutes,
@@ -2183,18 +2360,18 @@ export const earnPassiveIncome = async user => {
     skillBonuses: { perSec, perMin, perHour },
     leveledUp,
     income: [perSec, perMin, perHour],
-  };
-};
-export const getPassiveIncome = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getPassiveIncome: User ${user} not found.`);
+  });
+});
+export const getPassiveIncome = selfWrap(async function getPassiveIncome(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const now = Date.now();
   const data = await loadData(user);
-  const last = data.passiveIncome.lastClaimed ?? now;
+  const last = data.passiveIncome.lastClaim ?? now;
   const seconds = Math.floor((now - last) / 1000);
   const minutes = Math.floor(seconds / 60);
   if (minutes < 1) {
-    return {
+    return successMsg(this.name, ``, {
       user,
       seconds,
       minutes,
@@ -2203,7 +2380,7 @@ export const getPassiveIncome = async user => {
       prestige: data.prestige || 0,
       multiplier: 1,
       skillBonuses: {},
-    };
+    });
   }
   const prestige = Number.isFinite(data.prestige) ? data.prestige : 0;
   const dredBase = config.PASSIVE_INCOME.BASE_PER_MINUTE_DREDCOIN || 10;
@@ -2222,7 +2399,7 @@ export const getPassiveIncome = async user => {
   const rawExp = minutes * expBase * totalMultiplier + seconds * perSec * 0.5 + minutes * perMin * 0.5 + (seconds / 3600) * perHour * 0.5;
   const dredcoin = Math.floor(await applyDredcoinMultiplier(user, rawDred));
   const exp = Math.floor(await applyExpMultiplier(user, rawExp));
-  return {
+  return successMsg(this.name, ``, {
     user,
     seconds,
     minutes,
@@ -2231,11 +2408,11 @@ export const getPassiveIncome = async user => {
     prestige,
     multiplier: totalMultiplier,
     skillBonuses: { perSec, perMin, perHour },
-  };
-};
+  });
+});
 
-export const giveCooldownBoost = async (user, multiplier, durationMs) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveCooldownBoost: User ${user} not found.`);
+export const giveCooldownBoost = selfWrap(async function giveCooldownBoost(user, multiplier, durationMs) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!Array.isArray(data.boost.cooldown)) data.boost.cooldown = [];
@@ -2244,14 +2421,14 @@ export const giveCooldownBoost = async (user, multiplier, durationMs) => {
     expiresAt: Date.now() + durationMs,
   });
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     multiplier,
     expiresAt: Date.now() + durationMs,
-  };
-};
-export const getCooldownBoost = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getCooldownBoost: User ${user} not found.`);
+  });
+});
+export const getCooldownBoost = selfWrap(async function getCooldownBoost(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   if (!Array.isArray(data.boost.cooldown)) data.boost.cooldown = [];
@@ -2259,35 +2436,35 @@ export const getCooldownBoost = async user => {
   const boosts = data.boost.cooldown;
   const activeBoosts = boosts.filter(boost => !isExpired(boost));
   if (activeBoosts.length === 0) {
-    return {
+    return successMsg(this.name, ``, {
       user,
       active: false,
       multiplier: 1,
       timeLeft: 0,
       boosts: [],
-    };
+    });
   }
   const multiplier = activeBoosts.reduce((acc, b) => acc * b.multiplier, 1);
   const timeLeft = Math.max(...activeBoosts.map(b => b.expiresAt - now));
-  return {
+  return successMsg(this.name, ``, {
     user,
     active: true,
     multiplier,
     timeLeft,
     boosts: activeBoosts,
-  };
-};
-export const newCooldown = async (user, command, seconds) => {
-  if (!command || isNaN(seconds)) throwError(`[-] newCooldown: Invalid arguments.`);
-  if (!(await isValidUser(user))) throwError(`[-] newCooldown: User ${user} not found.`);
+  });
+});
+export const newCooldown = selfWrap(async function newCooldown(user, command, seconds) {
+  if (!command || isNaN(seconds)) throwError(`${this.name}`, `Invalid arguments.`);
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const now = Date.now();
   if (seconds <= 0)
-    return {
+    return successMsg(this.name, ``, {
       setAt: now,
       duration: 0,
       expires: now,
-    };
+    });
   cooldowns = cooldowns || {};
   if (!cooldowns[user]) cooldowns[user] = {};
   const baseDuration = seconds * 1000;
@@ -2302,7 +2479,7 @@ export const newCooldown = async (user, command, seconds) => {
     duration,
     expires: now + duration,
   };
-  return {
+  return successMsg(this.name, ``, {
     user,
     command,
     baseDuration,
@@ -2310,19 +2487,19 @@ export const newCooldown = async (user, command, seconds) => {
     expire: now + duration,
     extraCooldown,
     reducedCooldown,
-  };
-};
-export const newGlobalCooldown = async (user, command, seconds) => {
-  if (!(await isValidUser(user))) throwError(`[-] newGlobalCooldown: User ${user} not found.`);
+  });
+});
+export const newGlobalCooldown = selfWrap(async function newGlobalCooldown(user, command, seconds) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
-  if (isNaN(seconds)) throwError(`[-] newGlobalCooldown: seconds (${seconds}) Not a number.`);
+  if (isNaN(seconds)) throwError(`${this.name}`, `seconds (${seconds}) Not a number.`);
   const now = Date.now();
   if (seconds <= 0)
-    return {
+    return successMsg(this.name, ``, {
       user,
       expires: now,
       setAt: now,
-    };
+    });
   let data = await loadData(user);
   if (!data) data = {};
   if (!data.globalCooldown) data.globalCooldown = {};
@@ -2331,13 +2508,13 @@ export const newGlobalCooldown = async (user, command, seconds) => {
     setAt: now,
   };
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     expires: now + seconds * 1000,
     setAt: now,
-  };
-};
-export const Cooldown = async (user, command) => {
+  });
+});
+export const Cooldown = selfWrap(async function Cooldown(user, command) {
   if (!(await isValidUser(user))) return false;
   await initUserObject(user);
   const cd = cooldowns?.[user]?.[command];
@@ -2352,29 +2529,29 @@ export const Cooldown = async (user, command) => {
       delete cooldowns[user][command];
       return false;
     }
-    return {
+    return successMsg(this.name, ``, {
       user,
       command,
       remaining,
       expires: endTime,
       claimableAt: new Date(endTime),
-    };
+    });
   }
   const remaining = cd.expires - now;
   if (remaining <= 0) {
     delete cooldowns[user][command];
     return false;
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     command,
     remaining,
     expires: cd.expires,
     claimableAt: new Date(cd.expires),
-  };
-};
-export const GlobalCooldown = async (user, command) => {
-  if (!(await isValidUser(user))) throwError(`[-] GlobalCooldown: User ${user} not found.`);
+  });
+});
+export const GlobalCooldown = selfWrap(async function GlobalCooldown(user, command) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const cd = data?.globalCooldown?.[command];
@@ -2390,13 +2567,13 @@ export const GlobalCooldown = async (user, command) => {
       await saveData(user, data);
       return false;
     }
-    return {
+    return successMsg(this.name, ``, {
       user,
       command,
       remaining,
       expires: now + remaining,
       claimableAt: new Date(now + remaining),
-    };
+    });
   }
   const remaining = cd.expires - now;
   if (remaining <= 0) {
@@ -2404,36 +2581,36 @@ export const GlobalCooldown = async (user, command) => {
     await saveData(user, data);
     return false;
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     command,
     remaining,
     expires: cd.expires,
     claimableAt: new Date(cd.expires),
-  };
-};
-export const resetAllCooldowns = async user => {
-  if (!cooldowns[user]) throwError(`[-] resetAllCooldowns: User ${user} not found.`);
+  });
+});
+export const resetAllCooldowns = selfWrap(async function resetAllCooldowns(user) {
+  if (!cooldowns[user]) throwError(`${this.name}`, `User ${user} not found.`);
   delete cooldowns[user];
-  return {
+  return successMsg(this.name, ``, {
     user,
     deleted: cooldowns[user],
-  };
-};
-export const resetRandomCooldown = async user => {
-  if (!cooldowns[user]) throwError(`[-] resetRandomCooldown: User ${user} not found.`);
+  });
+});
+export const resetRandomCooldown = selfWrap(async function resetRandomCooldown(user) {
+  if (!cooldowns[user]) throwError(`${this.name}`, `User ${user} not found.`);
   const cds = cooldowns[user];
   const keys = Object.keys(cds);
   if (keys.length === 0) return null;
   const chosen = keys[Math.floor(randomNumber(0, keys.length))];
   delete cds[chosen];
-  return {
+  return successMsg(this.name, ``, {
     user,
     name: chosen,
-  };
-};
-export const doubleAllCooldowns = async user => {
-  if (!cooldowns[user]) throwError(`[-] resetAllCooldowns: User ${user} not found.`);
+  });
+});
+export const doubleAllCooldowns = selfWrap(async function doubleAllCooldowns(user) {
+  if (!cooldowns[user]) throwError(`${this.name}`, `User ${user} not found.`);
   const now = Date.now();
   for (const cmd in cooldowns[user]) {
     const cd = cooldowns[user][cmd];
@@ -2441,63 +2618,169 @@ export const doubleAllCooldowns = async user => {
     cd.expires = now + timeLeft * 2;
   }
   return cooldowns[user];
-};
+});
 
-export const gambleStreak = async (user, streak) => {
-  if (!(await isValidUser(user))) throwError(`[-] gambleStreak: User ${user} not found.`);
+export const gambleStreak = selfWrap(async function gambleStreak(user, streak) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   streak = Number(streak);
-  if (!isInteger(streak) || streak < 0) throwError(`[-] gambleStreak: Invalid streak.`);
+  if (!isInteger(streak) || streak < 0) throwError(`${this.name}`, `Invalid streak.`);
   const data = await loadData(user);
   data.streak.gamble = streak;
   await saveData(user, data);
-  return { streak };
-};
-export const getGambleStreak = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getGambleStreak: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    streak,
+  });
+});
+export const getGambleStreak = selfWrap(async function getGambleStreak(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   return data.streak.gamble ?? 0;
-};
-export const dailyStreak = async (user, streak, lastClaim) => {
-  if (!(await isValidUser(user))) throwError(`[-] dailyStreak: User ${user} not found.`);
+});
+export const calcNextStreak = selfWrap(async function calcNextStreak(lastClaim, type) {
+  if (!lastClaim) return { next: 0, expire: 0, nextAt: 0, expireAt: 0, isDone: false };
+  const addMap = {
+    daily: { days: 1 },
+    weekly: { weeks: 1 },
+    monthly: { months: 1 },
+    yearly: { years: 1 }
+  };
+  const now = DateTime.utc();
+  const last = DateTime.fromMillis(lastClaim, { zone: "utc" });
+  const nextAt = last.plus(addMap[type]).toMillis();
+  const expireAt = last.plus({ ...addMap[type], ...addMap[type] }).toMillis();
+  let isDone = false;
+  if (type === "daily") isDone = last.hasSame(now, "day");
+  else if (type === "weekly") isDone = last.hasSame(now, "week");
+  else if (type === "monthly") isDone = last.hasSame(now, "month");
+  else if (type === "yearly") isDone = last.hasSame(now, "year");
+  return successMsg(this.name, ``, 0, {
+    lastClaim,
+    type,
+    next: Math.max(0, nextAt - now.toMillis()),
+    expire: Math.max(0, expireAt - now.toMillis()),
+    nextAt,
+    expireAt,
+    isDone
+  });
+});
+export const dailyStreak = selfWrap(async function dailyStreak(user, streak, lastClaim) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   streak = Number(streak);
-  if (!isInteger(streak) || streak < 0) throwError(`[-] dailyStreak: Invalid streak.`);
+  if (!isInteger(streak) || streak < 0) throwError(`${this.name}`, `Invalid streak.`);
   const data = await loadData(user);
   if (!data.streak.daily) data.streak.daily = {};
   data.streak.daily.streak = streak;
   data.streak.daily.lastClaim = lastClaim || Date.now();
   await saveData(user, data);
-  return { streak, lastClaim: data.streak.daily.lastClaim };
-};
-export const getDailyStreak = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getDailyStreak: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    streak,
+    lastClaim: data.streak.daily.lastClaim,
+    ...calcNextStreak(data.streak.daily.lastClaim, "daily")
+  });
+});
+export const getDailyStreak = selfWrap(async function getDailyStreak(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
-  return { streak: data.streak?.daily?.streak ?? 0, lastClaim: data.streak?.daily?.lastClaim ?? 0 };
-};
-export const weeklyStreak = async (user, streak, lastClaim) => {
-  if (!(await isValidUser(user))) throwError(`[-] weeklyStreak: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    streak: data.streak?.daily?.streak ?? 0,
+    lastClaim: data.streak?.daily?.lastClaim ?? 0,
+  });
+});
+export const weeklyStreak = selfWrap(async function weeklyStreak(user, streak, lastClaim) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   streak = Number(streak);
-  if (!isInteger(streak) || streak < 0) throwError(`[-] weeklyStreak: Invalid streak.`);
+  if (!isInteger(streak) || streak < 0) throwError(`${this.name}`, `Invalid streak.`);
   const data = await loadData(user);
   if (!data.streak.weekly) data.streak.weekly = {};
   data.streak.weekly.streak = streak;
   data.streak.weekly.lastClaim = lastClaim || Date.now();
   await saveData(user, data);
-  return { streak, lastClaim: data.streak.weekly.lastClaim };
-};
-export const getWeeklyStreak = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getWeeklyStreak: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    streak,
+    lastClaim: data.streak.weekly.lastClaim,
+    ...calcNextStreak(data.streak.weekly.lastClaim, "weekly")
+  });
+});
+export const getWeeklyStreak = selfWrap(async function getWeeklyStreak(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
-  return { streak: data.streak?.weekly?.streak ?? 0, lastClaim: data.streak?.weekly?.lastClaim ?? 0 };
-};
+  return successMsg(this.name, ``, {
+    user,
+    streak: data.streak?.weekly?.streak ?? 0,
+    lastClaim: data.streak?.weekly?.lastClaim ?? 0,
+  });
+});
+export const monthlyStreak = selfWrap(async function monthlyStreak(user, streak, lastClaim) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  await initUserObject(user);
+  streak = Number(streak);
+  if (!isInteger(streak) || streak < 0) throwError(`${this.name}`, `Invalid streak.`);
+  const data = await loadData(user);
+  if (!data.streak.monthly) data.streak.monthly = {};
+  data.streak.monthly.streak = streak;
+  data.streak.monthly.lastClaim = lastClaim || Date.now();
+  await saveData(user, data);
+  return successMsg(this.name, ``, {
+    user,
+    streak,
+    lastClaim: data.streak.monthly.lastClaim,
+    ...calcNextStreak(data.streak.monthly.lastClaim, "monthly")
+  });
+});
+export const getMonthlyStreak = selfWrap(async function getMonthlyStreak(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  await initUserObject(user);
+  const data = await loadData(user);
+  const lastClaim = data.streak?.monthly?.lastClaim ?? 0;
+  return successMsg(this.name, ``, {
+    user,
+    streak: data.streak?.monthly?.streak ?? 0,
+    lastClaim,
+    ...calcNextStreak(lastClaim, "monthly")
+  });
+});
+export const yearlyStreak = selfWrap(async function yearlyStreak(user, streak, lastClaim) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  await initUserObject(user);
+  streak = Number(streak);
+  if (!isInteger(streak) || streak < 0) throwError(`${this.name}`, `Invalid streak.`);
+  const data = await loadData(user);
+  if (!data.streak.yearly) data.streak.yearly = {};
+  data.streak.yearly.streak = streak;
+  data.streak.yearly.lastClaim = lastClaim || Date.now();
+  await saveData(user, data);
+  return successMsg(this.name, ``, {
+    user,
+    streak,
+    lastClaim: data.streak.yearly.lastClaim,
+    ...calcNextStreak(data.streak.yearly.lastClaim, "yearly")
+  });
+});
+export const getYearlyStreak = selfWrap(async function getYearlyStreak(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  await initUserObject(user);
+  const data = await loadData(user);
+  const lastClaim = data.streak?.yearly?.lastClaim ?? 0;
+  return successMsg(this.name, ``, {
+    user,
+    streak: data.streak?.yearly?.streak ?? 0,
+    lastClaim,
+    ...calcNextStreak(lastClaim, "yearly")
+  });
+});
 
-export const depositDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] depositDredcoin: User ${user} not found.`);
+export const depositDredcoin = selfWrap(async function depositDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   if (await isMaxBank(user).isMax) throwError(`[!] depositDredcoin: ${user} already has the maximum allowed bank balance.`);
   await initUserObject(user);
   amount = Number(amount);
@@ -2507,31 +2790,31 @@ export const depositDredcoin = async (user, amount) => {
   data.balance.dredcoin ??= 0;
   data.bank ||= {};
   data.bank.balance ??= 0;
-  if (data.balance.dredcoin < amount) return `[-] depositDredcoin: ${user} doesn't have enough Dredcoin (needs ${amount}).`;
+  if (data.balance.dredcoin < amount) return errorMsg(`depositDredcoin`, `${user} doesn't have enough Dredcoin (needs ${amount}).`);
   const tax = await getTax(amount, user);
   const netDeposit = amount - tax;
   data.balance.dredcoin -= amount;
   data.bank.balance += netDeposit;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     taxed: tax,
     deposited: netDeposit,
     walletRemaining: data.balance.dredcoin,
     bankNow: data.bank.balance,
-  };
-};
-export const withdrawDredcoin = async (user, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] withdrawDredcoin: User ${user} not found.`);
+  });
+});
+export const withdrawDredcoin = selfWrap(async function withdrawDredcoin(user, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount) || amount <= 0) throwError(`[-] withdrawDredcoin: Invalid amount.`);
+  if (!isInteger(amount) || amount <= 0) throwError(`${this.name}`, `Invalid amount.`);
   const data = await loadData(user);
   data.balance ||= {};
   data.balance.dredcoin ??= 0;
   data.bank ||= {};
   data.bank.balance ??= 0;
-  if (data.bank.balance < amount) return `[-] withdrawDredcoin: ${user} doesn't have enough in bank (needs ${amount}).`;
+  if (data.bank.balance < amount) return errorMsg(`withdrawDredcoin`, `${user} doesn't have enough in bank (needs ${amount}).`);
   const tax = await getTax(amount, user);
   const netWithdraw = amount - tax;
   if (await isMaxCoin(user).isMax) return `[!] withdrawDredcoin: {user} already has the maximum allowed Dredcoin.`;
@@ -2543,27 +2826,27 @@ export const withdrawDredcoin = async (user, amount) => {
   data.bank.balance -= amount;
   data.balance.dredcoin += netWithdraw;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     taxed: tax,
     withdrawn: netWithdraw,
     bankRemaining: data.bank.balance,
     walletNow: data.balance.dredcoin,
-  };
-};
-export const transferDredcoin = async (userA, userB, amount) => {
-  if (!(await isValidUser(userA))) throwError(`[-] transferDredcoin: Sender '${userA}' not found.`);
-  if (!(await isValidUser(userB))) throwError(`[-] transferDredcoin: Receiver '${userB}' not found.`);
+  });
+});
+export const transferDredcoin = selfWrap(async function transferDredcoin(userA, userB, amount) {
+  if (!(await isValidUser(userA))) throwError(`${this.name}`, `Sender '${userA}' not found.`);
+  if (!(await isValidUser(userB))) throwError(`${this.name}`, `Receiver '${userB}' not found.`);
   await initUserObject(user);
   amount = Number(amount);
-  if (!isInteger(amount) || amount <= 0) throwError(`[-] transferDredcoin: Invalid amount '${amount}'.`);
+  if (!isInteger(amount) || amount <= 0) throwError(`${this.name}`, `Invalid amount '${amount}'.`);
   const dataA = await loadData(userA);
   const dataB = await loadData(userB);
   dataA.balance ||= {};
   dataA.balance.dredcoin ??= 0;
   dataB.balance ||= {};
   dataB.balance.dredcoin ??= 0;
-  if (dataA.balance.dredcoin < amount) return `[-] transferDredcoin: '${userA}' doesn't have enough Dredcoin (needs ${amount}, has ${dataA.balance.dredcoin}).`;
+  if (dataA.balance.dredcoin < amount) return errorMsg(`transferDredcoin`, `'${userA}' doesn't have enough Dredcoin (needs ${amount}, has ${dataA.balance.dredcoin}).`);
   const tax = await getTax(amount, userA);
   const afterTax = amount - tax;
   const { isMax } = await isMaxCoin(userB);
@@ -2581,7 +2864,7 @@ export const transferDredcoin = async (userA, userB, amount) => {
   dataB.balance.dredcoin += afterTax;
   await saveData(userA, dataA);
   await saveData(userB, dataB);
-  return {
+  return successMsg(this.name, ``, {
     from: userA,
     to: userB,
     sent: amount,
@@ -2589,10 +2872,10 @@ export const transferDredcoin = async (userA, userB, amount) => {
     received: afterTax,
     senderRemaining: dataA.balance.dredcoin,
     receiverTotal: dataB.balance.dredcoin,
-  };
-};
+  });
+});
 
-export const searchItemByIdOrName = (inventory, query) => {
+export const searchItemByIdOrName = selfWrap(async function searchItemByIdOrName(inventory, query) {
   const q = query.toLowerCase();
   const stack = [[inventory, []]];
   while (stack.length) {
@@ -2602,14 +2885,20 @@ export const searchItemByIdOrName = (inventory, query) => {
       if (typeof value === 'object' && value !== null) {
         const idMatch = (typeof value.id === 'string' && value.id.toLowerCase() === q) || (typeof value.id === 'number' && value.id.toString() === q);
         const nameMatch = typeof value.name === 'string' && value.name.toLowerCase() === q;
-        if (idMatch || nameMatch) return { item: value, pathArray: [...path, key] };
+        if (idMatch || nameMatch)
+          return successMsg(this.name, ``, {
+            item: value,
+            pathArray: [...path, key],
+          });
         else stack.push([value, [...path, key]]);
       }
     }
   }
-  return { item: null };
-};
-export const isItemExistByIdOrName = query => {
+  return successMsg(this.name, ``, {
+    item: null,
+  });
+});
+export const isItemExistByIdOrName = selfWrap(async function isItemExistByIdOrName(query) {
   if (!query) return false;
   const q = query.toString().toLowerCase();
   for (const def of Object.values(items)) {
@@ -2619,8 +2908,8 @@ export const isItemExistByIdOrName = query => {
     if (idMatch || nameMatch) return true;
   }
   return false;
-};
-export const getItemDefByIdOrName = async query => {
+});
+export const getItemDefByIdOrName = selfWrap(async function getItemDefByIdOrName(query) {
   if (query == null) return null;
   const q = query.toString().toLowerCase();
   for (const def of Object.values(items)) {
@@ -2630,105 +2919,150 @@ export const getItemDefByIdOrName = async query => {
     if (idMatch || nameMatch) return def;
   }
   return null;
-};
-export const resolveItem = (inventory, itemPathOrObj) => {
-  if (typeof itemPathOrObj === 'object') return { item: itemPathOrObj };
+});
+export const resolveItem = selfWrap(async function resolveItem(inventory, itemPathOrObj) {
+  if (typeof itemPathOrObj === 'object')
+    return successMsg(this.name, ``, {
+      item: itemPathOrObj,
+    });
   const pathArray = itemPathOrObj.split('.');
   let current = inventory;
   for (const key of pathArray) {
     if (!current[key]) return searchItemByIdOrName(inventory, itemPathOrObj);
     current = current[key];
   }
-  return { item: current, pathArray };
-};
-export const resolveContainer = (inventory, pathArray) => {
+  return successMsg(this.name, ``, {
+    item: current,
+    pathArray,
+  });
+});
+export const resolveContainer = selfWrap(async function resolveContainer(inventory, pathArray) {
   let current = inventory;
   for (let i = 0; i < pathArray.length - 1; i++) {
     if (!current[pathArray[i]]) current[pathArray[i]] = {};
     current = current[pathArray[i]];
   }
-  return { container: current, key: pathArray[pathArray.length - 1] };
+  return successMsg(this.name, ``, {
+    container: current,
+    key: pathArray[pathArray.length - 1],
+  });
+});
+export const createNewItemStack = async (user, itemPath, count, meta) => {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User '${user}' not found.`);
+  if (typeof itemPath !== "string") throwError(`${this.name}`, `Item path must be a string.`);
+  if (count <= 0) throwError(`${this.name}`, `Count must be positive.`);
+  await initUserObject(user);
+  const data = await loadData(user);
+  const inventory = (data.inventory ||= {});
+  const { container, key } = resolveContainer(inventory, itemPath.split("."));
+  const maxStack = meta?.maxStack || Infinity;
+  let remaining = count;
+  let index = 1;
+  const created = [];
+  while (remaining > 0) {
+    const stackCount = Math.min(remaining, maxStack);
+    let k = index === 1 ? key : `${key}_${index}`;
+    while (container[k]) {
+      index++;
+      k = `${key}_${index}`;
+    }
+    container[k] = {
+      id: key,
+      count: stackCount,
+      ...meta
+    };
+    created.push({ k, count: stackCount });
+    remaining -= stackCount;
+    index++;
+  }
+  await saveData(user, data);
+  return successMsg(this.name, ``, {
+    user,
+    item: itemPath,
+    created
+  });
 };
-export const giveItem = async (user, itemPath, count = 1) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveItem: User ${user} not found.`);
-  if (typeof itemPath !== 'string') throwError('[-] giveItem: Item path must be a string.');
+export const giveItem = selfWrap(async function giveItem(user, itemPath, count = 1) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User '${user}' not found.`);
+  if (typeof itemPath !== "string") throwError(`${this.name}`, `Item path must be a string.`);
   await initUserObject(user);
   const skillBonuses = await applySkillBoosts(user);
   const bonusChance = Math.min(skillBonuses?.bonusItemChance || 0, 1);
   let bonusCount = 0;
-  for (let i = 0; i < count; i++) {
-    if (randomNumber() < bonusChance) bonusCount++;
-  }
-  const finalCount = count + bonusCount;
-  const data = await loadData(user);
-  const inventory = (data.inventory ||= {});
-  const pathArray = itemPath.split('.');
-  const { container, key } = resolveContainer(inventory, pathArray);
-  let meta = items[itemPath] || items[`${pathArray[0]}.${key}`];
-  if (!meta) {
-    const match = Object.entries(items).find(([k, v]) => v.id?.toLowerCase() === key.toLowerCase() || v.name?.toLowerCase() === key.toLowerCase());
-    if (match) meta = match[1];
-  }
-  if (!meta) throwError(`[-] giveItem: Metadata for item '${itemPath}' not found.`);
-  const stackable = !!meta?.defaultEnchants;
-  if (!container[key] || stackable) {
-    const uniqueKey = stackable ? `${key}_${Date.now()}_${Math.floor(randomNumber(0, 1000))}` : key;
-    container[uniqueKey] = {
-      id: key,
-      count: finalCount,
-    };
-    for (const prop of ['name', 'description', 'rarity', 'icon', 'type', 'obtainable', 'id', 'value']) {
-      if (meta[prop] !== undefined) container[uniqueKey][prop] = meta[prop];
-    }
-    if (meta.defaultEnchants) {
-      container[uniqueKey].enchants = { ...meta.defaultEnchants };
-      const enchantNames = Object.values(meta.defaultEnchants)
-        .map(e => e.name)
-        .join(', ');
-      container[uniqueKey].name = `${meta.name} ${enchantNames}`;
-    }
-  } else {
-    if (typeof container[key].count !== 'number') container[key].count = 0;
-    container[key].count += finalCount;
-    for (const prop of ['name', 'description', 'rarity', 'icon', 'type', 'obtainable', 'id', 'value']) {
-      if (meta[prop] !== undefined) container[key][prop] = meta[prop];
-    }
-  }
-  await saveData(user, data);
-  return {
+
+  for (let i = 0; i < count; i++) if (randomNumber() < bonusChance) bonusCount++;
+  const totalCount = count + bonusCount;
+  const meta = items[itemPath] || {};
+  if (!meta) throwError(`${this.name}`, `Metadata for '${itemPath}' not found.`);
+  const result = await createNewItemStack(user, itemPath, totalCount, meta);
+  return successMsg(this.name, ``, {
     user,
     item: itemPath,
     baseCount: count,
     bonusCount,
-    totalGiven: finalCount,
-    data: container[key],
-    bonusChance,
-  };
-};
-export const removeItem = async (user, itemPath, count = 1, removeIfZero = true) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeItem: User '${user}' not found.`);
-  if (typeof itemPath !== 'string') throwError(`[-] removeItem: Item path must be a string.`);
-  if (count <= 0) throwError(`[-] removeItem: Count must be positive.`);
+    totalGiven: totalCount,
+    stacks: result.created,
+    bonusChance
+  });
+});
+export const removeItem = selfWrap(async function removeItem(user, itemPath, count = 1, removeIfZero = true) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User '${user}' not found.`);
+  if (typeof itemPath !== "string") throwError(`${this.name}`, `Item path must be a string.`);
+  if (count <= 0) throwError(`${this.name}`, `Count must be positive.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = (data.inventory ||= {});
-  const pathArray = itemPath.split('.');
+  const pathArray = itemPath.split(".");
   const { container, key } = resolveContainer(inventory, pathArray);
   const target = container[key];
-  if (!target || typeof target.count !== 'number' || target.count < count) return false;
-  target.count -= count;
-  if (removeIfZero && target.count <= 0) delete container[key];
+  if (!target || typeof target.count !== "number") return errorMsg(this.name, `'${itemPath}' not found in inventory.`);
+  let removedAll = false;
+  if (target.count <= count) {
+    delete container[key];
+    removedAll = true;
+  } else target.count -= count;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     item: itemPath,
-    count,
-    removed: removeIfZero,
-  };
-};
-export const consumeItem = async (user, item, count = 1, options = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] consumeItem: User ${user} not found.`);
-  if (!item.consumable) throwError(`[-] consumeItem: Item ${item.id || 'unknown'} is not consumable.`);
+    requested: count,
+    removed: removedAll ? target?.count ?? count : count,
+    remaining: container[key]?.count ?? 0,
+    fullyRemoved: removedAll
+  });
+});
+export const transferItem = selfWrap(async function transferItem(userA, userB, itemPath, count = 1) {
+  if (!(await isValidUser(userA))) throwError(`${this.name}`, `Sender '${userA}' not found.`);
+  if (!(await isValidUser(userB))) throwError(`${this.name}`, `Receiver '${userB}' not found.`);
+  if (typeof itemPath !== "string") throwError(`${this.name}`, `Item path must be a string.`);
+  if (count <= 0) throwError(`${this.name}`, `Count must be positive.`);
+  await initUserObject(userA);
+  await initUserObject(userB);
+  const dataA = await loadData(userA);
+  const dataB = await loadData(userB);
+  const inventoryA = dataA.inventory ||= {};
+  const inventoryB = dataB.inventory ||= {};
+  const { container: contA, key } = resolveContainer(inventoryA, itemPath.split("."));
+  const item = contA[key];
+  if (!item || item.count < count) return errorMsg("transferItem", `'${userA}' does not have enough '${key}'`);
+  item.count -= count;
+  if (item.count <= 0) delete contA[key];
+  const meta = { ...item };
+  delete meta.count;
+  const result = await createNewItemStack(userB, itemPath, count, meta);
+  await saveData(userA, dataA);
+  await saveData(userB, dataB);
+  return successMsg(this.name, ``, {
+    from: userA,
+    to: userB,
+    item: itemPath,
+    transferred: count,
+    stacksReceived: result.created
+  });
+});
+export const consumeItem = selfWrap(async function consumeItem(user, item, count = 1, options = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!item.consumable) throwError(`${this.name}`, `Item ${item.id || 'unknown'} is not consumable.`);
   if (typeof item.count !== 'number') throwError('[-] consumeItem: Invalid item count.');
   await initUserObject(user);
   const preserveAble = item.type === 'consumable' && options.preserveable !== false;
@@ -2742,25 +3076,29 @@ export const consumeItem = async (user, item, count = 1, options = {}) => {
     delete container[key];
     if (typeof options.onDeplete === 'function') await options.onDeplete(user, item.id);
   }
-  return { consumed, isPreserved };
-};
-export const useItem = async (user, itemPathOrObj, count = 1, options = {}, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] useItem: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    consumed,
+    isPreserved: isPreserved,
+  });
+});
+export const useItem = selfWrap(async function useItem(user, itemPathOrObj, count = 1, options = {}, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = data?.inventory;
-  if (!inventory) throwError(`[-] useItem: User ${user} has no inventory`);
+  if (!inventory) throwError(`${this.name}`, `User ${user} has no inventory`);
   const { item, pathArray } = resolveItem(inventory, itemPathOrObj);
-  if (!item) return `[-] useItem: ${user} Item not found: ${itemPathOrObj}`;
+  if (!item) return errorMsg(`useItem`, `${user} Item not found: ${itemPathOrObj}`);
   const availableCount = typeof item.count === 'number' ? item.count : 1;
-  if (availableCount < count) return `[-] useItem: ${user} Not enough items. Available: ${availableCount}, required: ${count}`;
-  if (!item.id || !item.name || !item.description || !item.rarity || !item.icon || !item.type) throwError(`[-] useItem: ${user} Item missing required fields: ${item.id}`);
+  if (availableCount < count) return errorMsg(`useItem`, `${user} Not enough items. Available: ${availableCount}, required: ${count}`);
+  if (!item.id || !item.name || !item.description || !item.rarity || !item.icon || !item.type) throwError(`${this.name}`, `${user} Item missing required fields: ${item.id}`);
   let itemLogic = items[item.id];
   if (!itemLogic) {
     const fallbackKey = Object.keys(items).find(k => k.toLowerCase() === item.id.toLowerCase() || k.toLowerCase().endsWith(`.${item.id.toLowerCase()}`));
     if (fallbackKey) itemLogic = items[fallbackKey];
   }
-  if (!itemLogic?.execute) throwError(`[-] useItem: No logic found for item ${item.id}`);
+  if (!itemLogic?.execute) throwError(`${this.name}`, `No logic found for item ${item.id}`);
   const dep = await resolveDependencies(itemLogic.dependencies, message);
   if (Array.isArray(item.enchants)) {
     for (const e of item.enchants) {
@@ -2790,9 +3128,9 @@ export const useItem = async (user, itemPathOrObj, count = 1, options = {}, mess
   await saveData(user, data);
   const result = await itemLogic.execute(user, itemLogic, dep, count);
   return options.returnValue ? result : undefined;
-};
-export const hasItem = async (user, itemPathOrObj, minCount = 1) => {
-  if (!(await isValidUser(user))) throwError(`[-] hasItem: User ${user} not found.`);
+});
+export const hasItem = selfWrap(async function hasItem(user, itemPathOrObj, minCount = 1) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = data?.inventory;
@@ -2800,8 +3138,8 @@ export const hasItem = async (user, itemPathOrObj, minCount = 1) => {
   const { item } = resolveItem(inventory, itemPathOrObj);
   if (!item || typeof item.count !== 'number') return false;
   return item.count >= minCount;
-};
-export const equipItem = async (user, itemPath) => {
+});
+export const equipItem = selfWrap(async function equipItem(user, itemPath) {
   if (!(await isValidUser(user))) throwError('[-] equipItem: User not found.');
   if (typeof itemPath !== 'string') throwError('[-] equipItem: Item path must be a string.');
   await initUserObject(user);
@@ -2809,8 +3147,8 @@ export const equipItem = async (user, itemPath) => {
   const inventory = data?.inventory;
   if (!inventory) throwError('[-] equipItem: User has no inventory.');
   const { item } = resolveItem(inventory, itemPath);
-  if (!item) return `[-] equipItem: Item '${itemPath}' not found.`;
-  if (!item.count || item.count < 1) return `[-] equipItem: You have no '${itemPath}' to equip.`;
+  if (!item) return errorMsg(`equipItem`, `Item '${itemPath}' not found.`);
+  if (!item.count || item.count < 1) return errorMsg(`equipItem`, `You have no '${itemPath}' to equip.`);
   const meta = items[item.id];
   if (!meta || (!meta.type && !meta.equipSlot)) throwError("[-] equipItem: Item can't be equipped (missing type).");
   const slot = meta.equipSlot || meta.type;
@@ -2819,16 +3157,15 @@ export const equipItem = async (user, itemPath) => {
   const old = equipment[slot];
   equipment[slot] = { id: item.id, name: item.name, icon: item.icon };
   await saveData(user, data);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     equipped: equipment[slot],
     slot,
     replaced: old || null,
-  };
-};
-export const listItems = async (user, options = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] listItems: User ${user} not found.`);
+  });
+});
+export const listItems = selfWrap(async function listItems(user, options = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = data?.inventory;
@@ -2848,16 +3185,16 @@ export const listItems = async (user, options = {}) => {
   };
   walk(inventory);
   return result;
-};
+});
 const item = () => {
   return items;
 };
-export const repairAllItemObject = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] repairAllItemObject: Invalid user: ${user}`);
+export const repairAllItemObject = selfWrap(async function repairAllItemObject(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user: ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = data?.inventory;
-  if (!inventory) throwError(`[-] repairAllItemObject: No inventory found for user ${user}`);
+  if (!inventory) throwError(`${this.name}`, `No inventory found for user ${user}`);
   const repairedDetails = [];
   const walk = (obj, path = []) => {
     for (const key in obj) {
@@ -2916,13 +3253,13 @@ export const repairAllItemObject = async user => {
   };
   walk(inventory);
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     repairedCount: repairedDetails.length,
     details: repairedDetails,
-  };
-};
-export const getRandomItemByChance = async (user, category, range = [1, 1], options = {}) => {
+  });
+});
+export const getRandomItemByChance = selfWrap(async function getRandomItemByChance(user, category, range = [1, 1], options = {}) {
   const { Metadata = false, all = false } = options;
   const baseTable = config.ITEM_RARITY_CHANCE[category] || config.ITEM_RARITY_CHANCE.default;
   const luck = await getLuck(user, category);
@@ -2962,8 +3299,8 @@ export const getRandomItemByChance = async (user, category, range = [1, 1], opti
   const count = Math.min(pool.length, Math.floor(randomNumber(0, max - min + 1)) + min);
   const selected = pool.sort(() => 0.5 - randomNumber()).slice(0, count);
   return selected.map(([id, meta]) => (Metadata ? meta : id));
-};
-export const getRandomItem = async (user, category, range = [1, 1], options = {}) => {
+});
+export const getRandomItem = selfWrap(async function getRandomItem(user, category, range = [1, 1], options = {}) {
   const { Metadata = false, includeAmount = false, filter = () => true } = options;
   const luck = await getLuck(user, category);
   const categoryItems = Object.entries(items).filter(([id, meta]) => (category === 'all' || id.startsWith(`${category}.`)) && filter(meta) && meta.obtainable !== false);
@@ -2973,21 +3310,32 @@ export const getRandomItem = async (user, category, range = [1, 1], options = {}
   const shuffled = categoryItems.sort(() => 0.5 - randomNumber()).slice(0, count);
   return shuffled.map(([id, meta]) => {
     const amount = includeAmount ? Math.ceil(randomNumber(0, 3 + 1) * luck.multiplier) : 1;
-    if (Metadata && includeAmount) return { ...meta, id, amount };
+    if (Metadata && includeAmount)
+      return successMsg(this.name, ``, {
+        user,
+        ...meta,
+        id,
+        amount,
+      });
     if (Metadata) return meta;
-    if (includeAmount) return { id, amount };
+    if (includeAmount)
+      return successMsg(this.name, ``, {
+        user,
+        id,
+        amount,
+      });
     return id;
   });
-};
-export const getItemsByRarity = (category, rarity, options = {}) => {
+});
+export const getItemsByRarity = selfWrap(async function getItemsByRarity(category, rarity, options = {}) {
   const { returnMetadata = false, filter = () => true } = options;
   const pool = Object.entries(items).filter(([id, meta]) => (category === 'all' || id.startsWith(`${category}.`)) && meta.rarity === rarity && filter(meta) && meta.obtainable !== false);
   return returnMetadata ? pool.map(([_, meta]) => meta) : pool.map(([id]) => id);
-};
-export const reduceDurability = async (user, itemPath, amount = 1, removeIfBroken = true) => {
-  if (!(await isValidUser(user))) throwError(`[-] reduceDurability: User ${user} not found.`);
-  if (typeof itemPath !== 'string') throwError(`[-] reduceDurability: itemPath must be a string.`);
-  if (amount <= 0) throwError(`[-] reduceDurability: Amount can't be negative.`);
+});
+export const reduceDurability = selfWrap(async function reduceDurability(user, itemPath, amount = 1, removeIfBroken = true) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (typeof itemPath !== 'string') throwError(`${this.name}`, `itemPath must be a string.`);
+  if (amount <= 0) throwError(`${this.name}`, `Amount can't be negative.`);
   await initUserObject(user);
   const data = await loadData(user);
   const isEquip = itemPath.startsWith('equipment.');
@@ -3005,30 +3353,30 @@ export const reduceDurability = async (user, itemPath, amount = 1, removeIfBroke
     else item.durability = 0;
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     itemPath,
     newDurability: item.durability,
     broken: item.durability <= 0,
-  };
-};
+  });
+});
 
-export const enchantItem = async (user, itemPath, enchantId, level = 1) => {
-  if (!(await isValidUser(user))) throwError(`[-] enchantItem: User ${user} not found.`);
+export const enchantItem = selfWrap(async function enchantItem(user, itemPath, enchantId, level = 1) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = (data.inventory ||= {});
   const { item, pathArray } = resolveItem(inv, itemPath);
-  if (!item) return `[-] enchantItem: Item not found at '${itemPath}'.`;
-  if (!enchantId || typeof enchantId !== 'string' || !enchants[enchantId]) throwError(`[-] enchantItem: Enchant ID '${enchantId}' is invalid or not registered.`);
+  if (!item) return errorMsg(`enchantItem`, `Item not found at '${itemPath}'.`);
+  if (!enchantId || typeof enchantId !== 'string' || !enchants[enchantId]) throwError(`${this.name}`, `Enchant ID '${enchantId}' is invalid or not registered.`);
   const base = enchants[enchantId];
-  if (typeof base.levelFactory !== 'function') throwError(`[-] enchantItem: Enchant '${enchantId}' is missing levelFactory.`);
+  if (typeof base.levelFactory !== 'function') throwError(`${this.name}`, `Enchant '${enchantId}' is missing levelFactory.`);
   const maxSlot = item.maxEnchantSlot ?? 1;
   const willReplace = item.enchants?.length >= maxSlot;
   const cost = config.ENCHANT_COST(user, item, enchantId);
   if (cost.dredcoin) {
     const coins = await getDredcoin(user);
-    if (coins < cost.dredcoin) return `[-] enchantItem: Not enough Dredcoin (${coins}/${cost.dredcoin}) to enchant '${itemPath}'.`;
+    if (coins < cost.dredcoin) return errorMsg(`enchantItem`, `Not enough Dredcoin (${coins}/${cost.dredcoin}) to enchant '${itemPath}'.`);
     await removeDredcoin(user, cost.dredcoin);
   }
   if (cost.item) await removeItem(user, cost.item, cost.count || 1);
@@ -3050,8 +3398,7 @@ export const enchantItem = async (user, itemPath, enchantId, level = 1) => {
     };
     container[newKey] = newItem;
     await saveData(user, data);
-    return {
-      success: true,
+    return successMsg(this.name, ``, {
       user,
       split: true,
       replaced: willReplace,
@@ -3059,7 +3406,7 @@ export const enchantItem = async (user, itemPath, enchantId, level = 1) => {
       level,
       newItem,
       key: newKey,
-    };
+    });
   } else {
     item.enchants ||= [];
     if (willReplace) item.enchants = [newEnchant];
@@ -3068,34 +3415,37 @@ export const enchantItem = async (user, itemPath, enchantId, level = 1) => {
     item.enchantedTime = timestamp;
     item.enchantCount = (item.enchantCount || 0) + 1;
     await saveData(user, data);
-    return {
-      success: true,
+    return successMsg(this.name, ``, {
       user,
       replaced: willReplace,
       enchantId,
       level,
       updated: true,
       key: originalKey,
-    };
+    });
   }
-};
-export const hasEnchant = async (user, itemPath, enchantId, level = null) => {
-  if (!(await isValidUser(user))) throwError(`[-] hasEnchant: User ${user} not found.`);
+});
+export const hasEnchant = selfWrap(async function hasEnchant(user, itemPath, enchantId, level = null) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = (data.inventory ||= {});
   const { item } = resolveItem(inv, itemPath);
   if (!item || !Array.isArray(item.enchants)) return false;
   return item.enchants.some(e => e.id === enchantId && (level === null || e.level === level));
-};
-export const getRandomEnchant = async (rarity = 'common') => {
+});
+export const getRandomEnchant = selfWrap(async function getRandomEnchant(rarity = 'common') {
   const pool = Object.entries(enchants).filter(([_, e]) => e.rarity === rarity && e.obtainable !== false);
   if (!pool.length) return null;
   const [id, base] = pool[Math.floor(randomNumber(0, pool.length))];
   const level = Math.floor(randomNumber(0, (base.maxLevel || 1) + 1));
-  return { id, level };
-};
-export const getRandomEnchantByChance = async () => {
+  return successMsg(this.name, ``, {
+    rarity,
+    id,
+    level,
+  });
+});
+export const getRandomEnchantByChance = selfWrap(async function getRandomEnchantByChance() {
   const table = config.ENCHANT_RARITY_CHANCE;
   const total = Object.values(table).reduce((a, b) => a + b, 0);
   const roll = randomNumber(0, total);
@@ -3105,12 +3455,12 @@ export const getRandomEnchantByChance = async () => {
     if (roll <= cumulative) return getRandomEnchant(rarity);
   }
   return null;
-};
-export const enchantToItem = async enchantObj => {
+});
+export const enchantToItem = selfWrap(async function enchantToItem(enchantObj) {
   if (!enchantObj?.id || !enchantObj?.name || typeof enchantObj.level !== 'number') throwError('[-] enchantToItem: Invalid enchant object: must include id, name, and level');
   const scrollId = `scrolls.${enchantObj.id.replace(/\./g, '_')}_lv${enchantObj.level}`;
   const enchantName = enchantObj.name;
-  return {
+  return successMsg(this.name, ``, {
     id: scrollId,
     name: `${enchantName} Scroll`,
     description: `Use on an item to apply ${enchantName} (Lv ${enchantObj.level}).`,
@@ -3122,10 +3472,10 @@ export const enchantToItem = async enchantObj => {
       level: enchantObj.level,
     },
     execute: async (user, item, deps, count = 1) => {},
-  };
-};
-export const useEnchantScroll = async (user, scrollPath, targetItemPath) => {
-  if (!(await isValidUser(user))) throwError(`[-] useEnchantScroll: User ${user} not found.`);
+  });
+});
+export const useEnchantScroll = selfWrap(async function useEnchantScroll(user, scrollPath, targetItemPath) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = data.inventory;
@@ -3136,16 +3486,16 @@ export const useEnchantScroll = async (user, scrollPath, targetItemPath) => {
   if (!target) return '[-] useEnchantScroll: Target item not found';
   const result = await enchantItem(user, targetItemPath, enchantId, level);
   const success = await removeItem(user, scrollPath, 1);
-  if (!success) return `[-] useEnchantScroll: You dont have "${scrollPath}".`;
-  return {
+  if (!success) return errorMsg(`useEnchantScroll`, `You dont have "${scrollPath}".`);
+  return successMsg(this.name, ``, {
     user,
     ...result,
     scrollUsed: scroll.id,
     to: targetItemPath,
-  };
-};
-export const getEnchants = async (user, itemPath) => {
-  if (!(await isValidUser(user))) throwError(`[-] getEnchants: User ${user} not found.`);
+  });
+});
+export const getEnchants = selfWrap(async function getEnchants(user, itemPath) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = data.inventory;
@@ -3153,7 +3503,7 @@ export const getEnchants = async (user, itemPath) => {
   if (!item || !Array.isArray(item.enchants)) return [];
   return item.enchants.map(e => {
     const meta = enchants[e.id];
-    return {
+    return successMsg(this.name, ``, {
       ...e,
       ...(meta
         ? {
@@ -3162,42 +3512,50 @@ export const getEnchants = async (user, itemPath) => {
             description: meta.description,
           }
         : {}),
-    };
+    });
   });
-};
-export const resetEnchants = async (user, itemPath) => {
-  if (!(await isValidUser(user))) throwError(`[-] resetEnchants: User ${user} not found.`);
+});
+export const resetEnchants = selfWrap(async function resetEnchants(user, itemPath) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = data.inventory;
   const { item } = resolveItem(inv, itemPath);
-  if (!item) return `[-] resetEnchants: Item not found at '${itemPath}'.`;
+  if (!item) return errorMsg(`resetEnchants`, `Item not found at '${itemPath}'.`);
   delete item.enchants;
   delete item.enchantCount;
   delete item.lastEnchantTime;
   await saveData(user, data);
-  return { success: true, reset: true, path: itemPath };
-};
-export const removeEnchant = async (user, itemPath, enchantIdOrIndex) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeEnchant: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    reset: true,
+    path: itemPath,
+  });
+});
+export const removeEnchant = selfWrap(async function removeEnchant(user, itemPath, enchantIdOrIndex) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = (data.inventory ||= {});
   const { item } = resolveItem(inv, itemPath);
-  if (!item?.enchants) throwError(`[-] removeEnchant: No enchants found at '${itemPath}'.`);
+  if (!item?.enchants) throwError(`${this.name}`, `No enchants found at '${itemPath}'.`);
   if (typeof enchantIdOrIndex === 'number') {
-    if (enchantIdOrIndex < 0 || enchantIdOrIndex >= item.enchants.length) return `[-] removeEnchant: Invalid enchant index ${enchantIdOrIndex}.`;
+    if (enchantIdOrIndex < 0 || enchantIdOrIndex >= item.enchants.length) return errorMsg(`removeEnchant`, `Invalid enchant index ${enchantIdOrIndex}.`);
     item.enchants.splice(enchantIdOrIndex, 1);
   } else {
     const index = item.enchants.findIndex(e => e.id === enchantIdOrIndex);
-    if (index === -1) return `[-] removeEnchant: Enchant '${enchantIdOrIndex}' not found.`;
+    if (index === -1) return errorMsg(`removeEnchant`, `Enchant '${enchantIdOrIndex}' not found.`);
     item.enchants.splice(index, 1);
   }
   await saveData(user, data);
-  return { success: true, removed: enchantIdOrIndex, path: itemPath };
-};
+  return successMsg(this.name, ``, {
+    user,
+    removed: enchantIdOrIndex,
+    path: itemPath,
+  });
+});
 
-export const getRecipeByIdOrName = (table, query) => {
+export const getRecipeByIdOrName = selfWrap(async function getRecipeByIdOrName(table, query) {
   if (!table || query == null) return null;
   const q = query.toString().toLowerCase();
   for (const r of Object.values(table)) {
@@ -3207,16 +3565,21 @@ export const getRecipeByIdOrName = (table, query) => {
     if (idMatch || nameMatch) return r;
   }
   return null;
+});
+export const getAllRecipes = async (table) => {
+  if (!table) return { recipes: [] };
+  const recipes = Object.values(table).filter(r => !!r);
+  return { recipes };
 };
-export const resolveInputToDef = async input => {
+export const resolveInputToDef = selfWrap(async function resolveInputToDef(input) {
   if (input == null) return null;
   if (typeof input === 'string' || typeof input === 'number') return await getItemDefByIdOrName(input);
   if (input.id != null) return await getItemDefByIdOrName(input.id);
   if (input.name) return await getItemDefByIdOrName(input.name);
   return null;
-};
-export const getCraftingStatus = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getCraftingStatus: User ${user} not found.`);
+});
+export const getCraftingStatus = selfWrap(async function getCraftingStatus(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const task = data.craftingTask;
@@ -3225,7 +3588,7 @@ export const getCraftingStatus = async user => {
   const end = task.start + task.duration;
   const remaining = Math.max(0, end - now);
   const complete = remaining <= 0;
-  return {
+  return successMsg(this.name, ``, {
     user,
     active: true,
     recipeId: task.recipeId,
@@ -3234,42 +3597,42 @@ export const getCraftingStatus = async user => {
     end,
     remaining,
     complete,
-  };
-};
-export const claimCraft = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] claimCraft: User ${user} not found.`);
+  });
+});
+export const claimCraft = selfWrap(async function claimCraft(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const status = await getCraftingStatus(user);
-  if (!status.active) return `[-] claimCraft: No active crafting task.`;
-  if (!status.complete) return `[-] claimCraft: Crafting not finished.`;
+  if (!status.active) return errorMsg(`claimCraft`, `No active crafting task.`);
+  if (!status.complete) return errorMsg(`claimCraft`, `Crafting not finished.`);
   const data = await loadData(user);
   await addItem(user, status.output);
   delete data.craftingTask;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     crafted: status.output,
-  };
-};
-export const craftItem = async (user, recipeId) => {
-  if (!(await isValidUser(user))) throwError(`[-] craftItem: User ${user} not found.`);
+  });
+});
+export const craftItem = selfWrap(async function craftItem(user, recipeId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const recipe = getRecipeByIdOrName(recipes.crafting, recipeId);
-  if (!recipe) throwError(`[-] craftItem: Unknown recipe '${recipeId}'.`);
+  if (!recipe) throwError(`${this.name}`, `Unknown recipe '${recipeId}'.`);
   const data = await loadData(user);
-  if (data.craftingTask) return `[-] craftItem: You are already crafting something.`;
+  if (data.craftingTask) return errorMsg(`craftItem`, `You are already crafting something.`);
   const inv = (data.inventory ||= {});
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const owned = countItem(inv, def.id);
-    if (owned < input.count) return `[-] craftItem: Missing '${def.name}' (${owned}/${input.count}).`;
+    if (owned < input.count) return errorMsg(`craftItem`, `Missing '${def.name}' (${owned}/${input.count}).`);
   }
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const success = await removeItem(user, def.id, input.count);
-    if (!success) return `[-] craftItem: You don't have "${def.name}" or not enough item.`;
+    if (!success) return errorMsg(`craftItem`, `You don't have "${def.name}" or not enough item.`);
   }
   const output = typeof recipe.output === 'function' ? recipe.output() : structuredClone(recipe.output);
   if (output.quality === undefined) output.quality = Math.floor(1 + randomNumber(0, 99));
@@ -3280,15 +3643,15 @@ export const craftItem = async (user, recipeId) => {
     output,
   };
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     recipeId,
     duration: recipe.craftTime || 0,
     output,
-  };
-};
-export const getCookingStatus = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getCookingStatus: User ${user} not found.`);
+  });
+});
+export const getCookingStatus = selfWrap(async function getCookingStatus(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const task = data.cookingTask;
@@ -3297,7 +3660,7 @@ export const getCookingStatus = async user => {
   const end = task.start + task.duration;
   const remaining = Math.max(0, end - now);
   const complete = remaining <= 0;
-  return {
+  return successMsg(this.name, ``, {
     user,
     active: true,
     recipeId: task.recipeId,
@@ -3306,42 +3669,42 @@ export const getCookingStatus = async user => {
     end,
     remaining,
     complete,
-  };
-};
-export const claimCook = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] claimCook: User ${user} not found.`);
+  });
+});
+export const claimCook = selfWrap(async function claimCook(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const status = await getCookingStatus(user);
-  if (!status.active) return `[-] claimCook: No active cooking task.`;
-  if (!status.complete) return `[-] claimCook: Cooking not finished.`;
+  if (!status.active) return errorMsg(`claimCook`, `No active cooking task.`);
+  if (!status.complete) return errorMsg(`claimCook`, `Cooking not finished.`);
   const data = await loadData(user);
   await addItem(user, status.output);
   delete data.cookingTask;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     cooked: status.output,
-  };
-};
-export const cookItem = async (user, recipeId) => {
-  if (!(await isValidUser(user))) throwError(`[-] cookItem: User ${user} not found.`);
+  });
+});
+export const cookItem = selfWrap(async function cookItem(user, recipeId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const recipe = getRecipeByIdOrName(recipes.cooking, recipeId);
-  if (!recipe) throwError(`[-] cookItem: Unknown recipe '${recipeId}'.`);
+  if (!recipe) throwError(`${this.name}`, `Unknown recipe '${recipeId}'.`);
   const data = await loadData(user);
-  if (data.cookingTask) return `[-] cookItem: You are already cooking something.`;
+  if (data.cookingTask) return errorMsg(`cookItem`, `You are already cooking something.`);
   const inv = (data.inventory ||= {});
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const owned = countItem(inv, def.id);
-    if (owned < input.count) return `[-] craftItem: Missing '${def.name}' (${owned}/${input.count}).`;
+    if (owned < input.count) return errorMsg(`craftItem`, `Missing '${def.name}' (${owned}/${input.count}).`);
   }
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const success = await removeItem(user, def.id, input.count);
-    if (!success) return `[-] craftItem: You don't have "${def.name}" or not enough item.`;
+    if (!success) return errorMsg(`craftItem`, `You don't have "${def.name}" or not enough item.`);
   }
   const output = typeof recipe.output === 'function' ? recipe.output() : structuredClone(recipe.output);
   if (output.quality === undefined) output.quality = Math.floor(1 + randomNumber(0, 99));
@@ -3352,15 +3715,15 @@ export const cookItem = async (user, recipeId) => {
     output,
   };
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     recipeId,
     duration: recipe.cookTime || 0,
     output,
-  };
-};
-export const getMeltingStatus = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] getMeltingStatus: User ${user} not found.`);
+  });
+});
+export const getMeltingStatus = selfWrap(async function getMeltingStatus(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const task = data.meltingTask;
@@ -3369,7 +3732,7 @@ export const getMeltingStatus = async user => {
   const end = task.start + task.duration;
   const remaining = Math.max(0, end - now);
   const complete = remaining <= 0;
-  return {
+  return successMsg(this.name, ``, {
     user,
     active: true,
     recipeId: task.recipeId,
@@ -3378,42 +3741,42 @@ export const getMeltingStatus = async user => {
     end,
     remaining,
     complete,
-  };
-};
-export const claimMelt = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] claimMelt: User ${user} not found.`);
+  });
+});
+export const claimMelt = selfWrap(async function claimMelt(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const status = await getMeltingStatus(user);
-  if (!status.active) return `[-] claimMelt: No active melting task.`;
-  if (!status.complete) return `[-] claimMelt: Melting not finished.`;
+  if (!status.active) return errorMsg(`claimMelt`, `No active melting task.`);
+  if (!status.complete) return errorMsg(`claimMelt`, `Melting not finished.`);
   const data = await loadData(user);
   await addItem(user, status.output);
   delete data.meltingTask;
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     melted: status.output,
-  };
-};
-export const meltItem = async (user, recipeId) => {
-  if (!(await isValidUser(user))) throwError(`[-] meltItem: User ${user} not found.`);
+  });
+});
+export const meltItem = selfWrap(async function meltItem(user, recipeId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const recipe = getRecipeByIdOrName(recipe.melting, recipeId);
-  if (!recipe) throwError(`[-] meltItem: Unknown recipe '${recipeId}'.`);
+  if (!recipe) throwError(`${this.name}`, `Unknown recipe '${recipeId}'.`);
   const data = await loadData(user);
-  if (data.meltingTask) return `[-] meltItem: You are already melting something.`;
+  if (data.meltingTask) return errorMsg(`meltItem`, `You are already melting something.`);
   const inv = (data.inventory ||= {});
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const owned = countItem(inv, def.id);
-    if (owned < input.count) return `[-] craftItem: Missing '${def.name}' (${owned}/${input.count}).`;
+    if (owned < input.count) return errorMsg(`craftItem`, `Missing '${def.name}' (${owned}/${input.count}).`);
   }
   for (const input of recipe.inputs) {
     const def = await resolveInputToDef(input);
-    if (!def) return `[-] craftItem: Unknown input '${input.name ?? input.id}'.`;
+    if (!def) return errorMsg(`craftItem`, `Unknown input '${input.name ?? input.id}'.`);
     const success = await removeItem(user, def.id, input.count);
-    if (!success) return `[-] craftItem: You don't have "${def.name}" or not enough item.`;
+    if (!success) return errorMsg(`craftItem`, `You don't have "${def.name}" or not enough item.`);
   }
   const output = typeof recipe.output === 'function' ? recipe.output() : structuredClone(recipe.output);
   if (output.quality === undefined) output.quality = Math.floor(1 + randomNumber(0, 99));
@@ -3424,28 +3787,28 @@ export const meltItem = async (user, recipeId) => {
     output,
   };
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     recipeId,
     duration: recipe.meltTime || 0,
     output,
-  };
-};
+  });
+});
 
-export const disassembleItem = async (user, itemPath, count = 1) => {
-  if (!(await isValidUser(user))) throwError(`[-] disassembleItem: User ${user} not found.`);
-  if (!isInteger(count) || count < 1) throwError(`[-] disassembleItem: Invalid count '${count}'.`);
+export const disassembleItem = selfWrap(async function disassembleItem(user, itemPath, count = 1) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!isInteger(count) || count < 1) throwError(`${this.name}`, `Invalid count '${count}'.`);
   await initUserObject(user);
   const { item } = resolveItem(userInventory, itemPath);
-  if (!item) return `[-] disassembleItem: Item '${itemPath}' not found.`;
-  if (item.count < count) return `[-] disassembleItem: Not enough '${item.id}' to disassemble (${item.count}/${count}).`;
+  if (!item) return errorMsg(`disassembleItem`, `Item '${itemPath}' not found.`);
+  if (item.count < count) return errorMsg(`disassembleItem`, `Not enough '${item.id}' to disassemble (${item.count}/${count}).`);
   const def = items[item.id];
-  if (!def?.disassemble) return `[-] disassembleItem: '${item.id}' is not disassemblable.`;
+  if (!def?.disassemble) return errorMsg(`disassembleItem`, `'${item.id}' is not disassemblable.`);
   const dep = await resolveDependencies(def.dependencies);
   const oneResult = await def.disassemble(user, item, dep);
-  if (!oneResult || oneResult === false) return `[-] disassembleItem: '${item.id}' cannot be disassembled.`;
+  if (!oneResult || oneResult === false) return errorMsg(`disassembleItem`, `'${item.id}' cannot be disassembled.`);
   const removed = await removeItem(user, itemPath, count);
-  if (!removed) return `[-] disassembleItem: Failed to remove items from inventory.`;
+  if (!removed) return errorMsg(`disassembleItem`, `Failed to remove items from inventory.`);
   const totalResult = {};
   for (let i = 0; i < count; i++) {
     for (const mat of oneResult) {
@@ -3467,16 +3830,16 @@ export const disassembleItem = async (user, itemPath, count = 1) => {
     }
   }
   for (const [id, amt] of Object.entries(totalResult)) await addItem(user, id, amt);
-  return {
+  return successMsg(this.name, ``, {
     user,
     itemPath,
     count,
     result: Object.entries(totalResult).map(([id, count]) => ({ id, count })),
-  };
-};
-export const disassemblePreview = async (user, item) => {
-  if (!(await isValidUser(user))) throwError(`[-] disassemblePreview: User ${user} not found.`);
-  if (!item || !item.id) throwError(`[-] disassemblePreview: Invalid item input.`);
+  });
+});
+export const disassemblePreview = selfWrap(async function disassemblePreview(user, item) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!item || !item.id) throwError(`${this.name}`, `Invalid item input.`);
   await initUserObject(user);
   const def = items[item.id];
   if (!def?.disassemble) return false;
@@ -3490,37 +3853,37 @@ export const disassemblePreview = async (user, item) => {
     else final.push({ user, id: mat.id, count: mat.count });
   }
   return final;
-};
-export const reforgeItem = async (user, itemPath) => {
-  if (!(await isValidUser(user))) throwError(`[-] reforgeItem: User ${user} not found.`);
+});
+export const reforgeItem = selfWrap(async function reforgeItem(user, itemPath) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = (data.inventory ||= {});
   const { item } = resolveItem(inv, itemPath);
-  if (!item) throwError(`[-] reforgeItem: Item not found at '${itemPath}'.`);
+  if (!item) throwError(`${this.name}`, `Item not found at '${itemPath}'.`);
   const current = item.quality || 100;
-  if (current === 100) return `[-] reforgeItem: '${itemPath}' is already 100% quality.`;
+  if (current === 100) return errorMsg(`reforgeItem`, `'${itemPath}' is already 100% quality.`);
   const cost = config.REFORGE_COST?.(user, item) || { dredcoin: 10000 };
   if (cost.dredcoin) {
     const coins = await getDredcoin(user);
-    if (coins < cost.dredcoin) return `[-] reforgeItem: Not enough Dredcoin (${coins}/${cost.dredcoin}) to reforge '${itemPath}'.`;
+    if (coins < cost.dredcoin) return errorMsg(`reforgeItem`, `Not enough Dredcoin (${coins}/${cost.dredcoin}) to reforge '${itemPath}'.`);
     await removeDredcoin(user, cost.dredcoin);
   }
   if (cost.item) {
     const success = await removeItem(user, cost.item, cost.count || 1);
-    if (!success) return `[-] reforgeItem: You don't have "${cost.item}" or not enough item.`;
+    if (!success) return errorMsg(`reforgeItem`, `You don't have "${cost.item}" or not enough item.`);
   }
   const oldQuality = item.quality || 100;
   item.quality = Math.floor(1 + randomNumber(0, 99));
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     oldQuality,
     newQuality: item.quality,
     itemPath,
-  };
-};
-export const formatItemQuality = (quality, options = {}) => {
+  });
+});
+export const formatItemQuality = selfWrap(async function formatItemQuality(quality, options = {}) {
   if (typeof quality !== 'number' || isNaN(quality)) return 'Unknown';
   const { bold, emoji = true, tier = true, discordFormat = false } = options;
   const q = quality.toFixed(1);
@@ -3538,55 +3901,246 @@ export const formatItemQuality = (quality, options = {}) => {
   const icon = discordFormat ? matched.discord : matched.icon;
   const label = [emoji ? icon : null, tier ? name : null].filter(Boolean).join(' ');
   return `${label} (${q}%)`;
-};
+});
 
-export const createTrade = async (fromUser, toUser, toUserConfirmed = null) => {
-  if (!(await isValidUser(fromUser))) throwError(`[-] createTrade: User ${fromUser} not found.`);
-  if (!(await isValidUser(toUser))) throwError(`[-] createTrade: User ${toUser} not found.`);
-  if (fromUser === toUser) return errorMsg("createTrade", "You cannot trade with yourself");
+export const createTrade = selfWrap(async function createTrade(fromUser, toUser, toUserConfirmed = null) {
+  if (!(await isValidUser(fromUser))) throwError(`${this.name}`, `User ${fromUser} not found.`);
+  if (!(await isValidUser(toUser))) throwError(`${this.name}`, `User ${toUser} not found.`);
+  if (fromUser === toUser) return errorMsg(`${this.name}`, 'You cannot trade with yourself');
   await initUserObject(fromUser);
   await initUserObject(toUser);
   const fromData = await loadData(fromUser);
   const toData = await loadData(toUser);
-  if (fromData.trade?._active) return errorMsg("createTrade", "You already have an active trade");
-  if (toData.trade?._active) return errorMsg("createTrade", `${toUser} already has an active trade`);
+  if (fromData.trade?._active) return errorMsg(`${this.name}`, 'You already have an active trade');
+  if (toData.trade?._active) return errorMsg(`${this.name}`, `${toUser} already has an active trade`);
   fromData.trade = {
     _active: true,
     partner: toUser,
-    confirmed: null
+    confirmed: null,
   };
   toData.trade = {
     _active: true,
     partner: fromUser,
-    confirmed: toUserConfirmed
+    confirmed: toUserConfirmed,
   };
   await saveData(fromUser, fromData);
   await saveData(toUser, toData);
-  let status = "pending";
-  if (toUserConfirmed === true) status = "accepted";
-  if (toUserConfirmed === false) status = "declined";
-  return successMsg("createTrade", `Trade ${status} between ${fromUser} and ${toUser}`, 0o0, {
+  let status = 'pending';
+  if (toUserConfirmed === true) status = 'accepted';
+  if (toUserConfirmed === false) status = 'declined';
+  return errorMsg(`${this.name}`, `Trade ${status} between ${fromUser} and ${toUser}`, 0o0, {
     fromUser,
     toUser,
-    status
+    status,
   });
-};
+});
+export const addTradeItem = selfWrap(async function addTradeItem(user, itemPath, count = 1) {
+  if (!(await isValidUser(user))) throwError(this.name, `User '${user}' not found.`);
+  await initUserObject(user);
+  if (typeof itemPath !== "string") throwError(this.name, `Item path must be string.`);
+  if (count <= 0) throwError(this.name, `Invalid item count '${count}'.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(this.name, 'No active trade.');
+  const inv = data.inventory || {};
+  const { container, key } = resolveContainer(inv, itemPath.split('.'));
+  if (!container[key] || container[key].count < count) return errorMsg(this.name, `Not enough '${itemPath}' to offer.`);
+  data.trade.items = data.trade.items || [];
+  const existing = data.trade.items.find(i => i.item === itemPath);
+  if (existing) existing.count += count; else data.trade.items.push({ item: itemPath, count });
+  await removeItem(user, itemPath, count, false);
+  await saveData(user, data);
+  return successMsg(this.name, `Added ${count}x ${itemPath} to trade.`, 0o0, {
+    user,
+    itemPath,
+    count,
+    locked: true
+  });
+});
+export const addTradeCurrency = selfWrap(async function addTradeCurrency(user, amount = 0) {
+  if (!(await isValidUser(user))) throwError(this.name, `User '${user}' not found.`);
+  await initUserObject(user);
+  amount = Number(amount);
+  if (!isInteger(amount) || amount <= 0) throwError(this.name, `Invalid amount '${amount}'.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(this.name, 'No active trade.');
+  const bal = (await loadData(user)).balance?.dredcoin || 0;
+  if (bal < amount) return errorMsg(this.name, `Not enough dredcoin to offer.`);
+  data.trade.currency = (data.trade.currency || 0) + amount;
+  await removeDredcoin(user, amount);
+  await saveData(user, data);
+  return successMsg(this.name, `Added ${amount} dredcoin to trade.`, 0o0, {
+    user,
+    amount,
+    locked: true
+  });
+});
+export const cancelTrade = selfWrap(async function cancelTrade(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(`${this.name}`, 'No active trade to cancel');
+  const partner = data.trade.partner;
+  const partnerData = await loadData(partner);
+  data.trade = { _active: false };
+  partnerData.trade = { _active: false };
+  await saveData(user, data);
+  await saveData(partner, partnerData);
+  return successMsg(`${this.name}`, `Trade between ${user} and ${partner} cancelled`, 0o0, { 
+    user, partner 
+  });
+});
+export const confirmTrade = selfWrap(async function confirmTrade(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(`${this.name}`, 'No active trade to confirm');
+  data.trade.confirmed = true;
+  await saveData(user, data);
+  const partner = data.trade.partner;
+  const partnerData = await loadData(partner);
+  if (partnerData.trade?.confirmed) return errorMsg(`${this.name}`, `Both users confirmed trade between ${user} and ${partner}.`, 0o0, { 
+    user, 
+    partner 
+  });
+  return successMsg(`${this.name}`, `${user} confirmed trade, waiting for ${partner}.`, 0o0, { 
+    user, 
+    partner 
+  });
+});
+export const declineTrade = selfWrap(async function declineTrade(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(`${this.name}`, 'No active trade to decline');
+  const partner = data.trade.partner;
+  const partnerData = await loadData(partner);
+  data.trade = { _active: false };
+  partnerData.trade = { _active: false };
+  await saveData(user, data);
+  await saveData(partner, partnerData);
+  return successMsg(`${this.name}`, `Trade between ${user} and ${partner} declined.`, 0o0, { 
+    user, 
+    partner 
+  });
+});
+export const getActiveTrade = selfWrap(async function getActiveTrade(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(`${this.name}`, 'No active trade found');
+  const partner = data.trade.partner;
+  return successMsg(`${this.name}`, 'Active trade retrieved.', 0o0, { 
+    user, 
+    partner, 
+    trade: data.trade 
+  });
+});
+export const finalizeTrade = selfWrap(async function finalizeTrade(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(this.name, 'No active trade');
+  const partner = data.trade.partner;
+  if (!(await isValidUser(partner))) throwError(`${this.name}`, `partner ${partner} not found.`);
+  const partnerData = await loadData(partner);
+  if (!partnerData.trade?._active) return errorMsg(this.name, `${partner} has no active trade`);
+  if (!data.trade.confirmed || !partnerData.trade.confirmed) return errorMsg(this.name, 'Both must confirm');
+  const uOffer = data.trade;
+  const pOffer = partnerData.trade;
+  for (const o of uOffer.items || []) {
+    const inv = data.inventory || {};
+    const { container, key } = resolveContainer(inv, o.item.split('.'));
+    if (!container[key] || container[key].count < o.count) return errorMsg(this.name, `${user} lacks ${o.item}`);
+  }
+  for (const o of pOffer.items || []) {
+    const inv = partnerData.inventory || {};
+    const { container, key } = resolveContainer(inv, o.item.split('.'));
+    if (!container[key] || container[key].count < o.count) return errorMsg(this.name, `${partner} lacks ${o.item}`);
+  }
+  const uBal = (await loadData(user)).balance?.dredcoin || 0;
+  const pBal = (await loadData(partner)).balance?.dredcoin || 0;
+  if (uOffer.currency && uBal < uOffer.currency) return errorMsg(this.name, `${user} lacks dredcoin`);
+  if (pOffer.currency && pBal < pOffer.currency) return errorMsg(this.name, `${partner} lacks dredcoin`);
+  for (const o of uOffer.items || []) await transferItem(user, partner, o.item, o.count);
+  for (const o of pOffer.items || []) await transferItem(partner, user, o.item, o.count);
+  if (uOffer.currency > 0) {
+    await removeDredcoin(user, uOffer.currency);
+    await addDredcoin(partner, uOffer.currency);
+  }
+  if (pOffer.currency > 0) {
+    await removeDredcoin(partner, pOffer.currency);
+    await addDredcoin(user, pOffer.currency);
+  }
+  data.trade = { _active: false };
+  partnerData.trade = { _active: false };
+  await saveData(user, data);
+  await saveData(partner, partnerData);
+  return successMsg(this.name, 'Trade completed successfully', 0o0, {
+    from: user,
+    to: partner,
+    itemsA: uOffer.items || [],
+    itemsB: pOffer.items || [],
+    dredcoinA: uOffer.currency || 0,
+    dredcoinB: pOffer.currency || 0,
+  });
+});
+export const cleanUpExpiredTrades = selfWrap(async function cleanUpExpiredTrades() {
+  const allUsers = await loadAllUsers();
+  let count = 0;
+  for (const u of allUsers) {
+    const data = await loadData(u);
+    if (data.trade?._active) {
+      const partner = data.trade.partner;
+      const pData = await loadData(partner);
+      data.trade = { _active: false };
+      pData.trade = { _active: false };
+      await saveData(u, data);
+      await saveData(partner, pData);
+      count++;
+    }
+  }
+  return successMsg(`${this.name}`, `Cleaned up ${count} trades.`, 0o0, { count });
+});
+export const getUserTradeStatus = selfWrap(async function getUserTradeStatus(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  const data = await loadData(user);
+  if (!data.trade?._active) return errorMsg(`${this.name}`, 'No active trade', 0o0, { active: false });
+  return successMsg(`${this.name}`, 'User trade status retrieved.', 0o0, {
+    active: true,
+    partner: data.trade.partner,
+    confirmed: data.trade.confirmed,
+  });
+});
+export const autoCancelInactiveTrades = selfWrap(async function autoCancelInactiveTrades(maxMs = 600000) {
+  const now = Date.now();
+  const allUsers = await loadAllUsers();
+  let cancelled = 0;
+  for (const u of allUsers) {
+    const data = await loadData(u);
+    const lastTradeTime = data.trade?.timestamp ?? 0;
+    if (data.trade?._active && now - lastTradeTime > maxMs) {
+      const partner = data.trade.partner;
+      const pData = await loadData(partner);
+      data.trade = { _active: false };
+      pData.trade = { _active: false };
+      await saveData(u, data);
+      await saveData(partner, pData);
+      cancelled++;
+    }
+  }
+  return successMsg(`${this.name}`, `Cancelled ${cancelled} inactive trades`, 0o0, { cancelled });
+});
 
-export const filterRarity = async (list, maxRarity, category) => {
-  if (list == null) throwError(`[-] filterRarity: 'list' is required.`);
-  if (typeof maxRarity !== 'string') throwError(`[-] filterRarity: 'maxRarity' must be a string.`);
-  if (!config?.RARITIES || !Array.isArray(config.RARITIES)) throwError(`[-] filterRarity: config.RARITIES missing or invalid.`);
+export const filterRarity = selfWrap(async function filterRarity(list, maxRarity, category) {
+  if (list == null) throwError(`${this.name}`, `'list' is required.`);
+  if (typeof maxRarity !== 'string') throwError(`${this.name}`, `'maxRarity' must be a string.`);
+  if (!config?.RARITIES || !Array.isArray(config.RARITIES)) throwError(`${this.name}`, `config.RARITIES missing or invalid.`);
   const pool = Array.isArray(list) ? list : typeof list === 'object' ? Object.values(list) : null;
-  if (!pool) throwError(`[-] filterRarity: 'list' must be an array or object.`);
+  if (!pool) throwError(`${this.name}`, `'list' must be an array or object.`);
   const maxIndex = config.RARITIES.indexOf(maxRarity.toLowerCase());
-  if (maxIndex === -1) return `[-] filterRarity: Invalid maxRarity '${maxRarity}'. Valid: ${config.RARITIES.join(', ')}`;
-  if (category !== undefined && category !== null && typeof category !== 'string') throwError(`[-] filterRarity: 'category' must be a string if provided.`);
+  if (maxIndex === -1) return errorMsg(`filterRarity`, `Invalid maxRarity '${maxRarity}'. Valid: ${config.RARITIES.join(', ')}`);
+  if (category !== undefined && category !== null && typeof category !== 'string') throwError(`${this.name}`, `'category' must be a string if provided.`);
   const cat = category ? category.toLowerCase() : null;
-  if (cat && cat !== 'event' && cat !== 'normal') return `[-] filterRarity: Invalid category '${category}', expected 'event' or 'normal'.`;
+  if (cat && cat !== 'event' && cat !== 'normal') return errorMsg(`filterRarity`, `Invalid category '${category}', expected 'event' or 'normal'.`);
   const result = [];
   for (const e of pool) {
     if (!e || typeof e !== 'object') continue;
-    if ('rarity' in e && e.rarity != null && typeof e.rarity !== 'string') throwError(`[-] filterRarity: item has invalid 'rarity' type.`);
+    if ('rarity' in e && e.rarity != null && typeof e.rarity !== 'string') throwError(`${this.name}`, `item has invalid 'rarity' type.`);
     if (!e.rarity || typeof e.rarity !== 'string') continue;
     const rIndex = config.RARITIES.indexOf(e.rarity.toLowerCase());
     if (rIndex === -1) continue;
@@ -3597,59 +4151,58 @@ export const filterRarity = async (list, maxRarity, category) => {
     }
     result.push(e);
   }
-  if (!result.length) return `[-] filterRarity: No matching entries found for maxRarity='${maxRarity}' category='${category || 'any'}'.`;
+  if (!result.length) return errorMsg(`filterRarity`, `No matching entries found for maxRarity='${maxRarity}' category='${category || 'any'}'.`);
   return result;
-};
-export const pickRandomByRarity = async (list, maxRarity, category) => {
-  if (list == null) throwError(`[-] pickRandomByRarity: 'list' is required.`);
-  if (typeof maxRarity !== 'string') throwError(`[-] pickRandomByRarity: 'maxRarity' must be a string.`);
+});
+export const pickRandomByRarity = selfWrap(async function pickRandomByRarity(list, maxRarity, category) {
+  if (list == null) throwError(`${this.name}`, `'list' is required.`);
+  if (typeof maxRarity !== 'string') throwError(`${this.name}`, `'maxRarity' must be a string.`);
   const filtered = await filterRarity(list, maxRarity, category);
-  if (typeof filtered === 'string' && filtered.startsWith('[-]')) return `[-] pickRandomByRarity: ${filtered}`;
-  if (!Array.isArray(filtered)) throwError(`[-] pickRandomByRarity: Unexpected result from filterRarity, got ${typeof filtered}.`);
+  if (typeof filtered === 'string' && filtered.startsWith('[-]')) return errorMsg(`pickRandomByRarity`, `${filtered}`);
+  if (!Array.isArray(filtered)) throwError(`${this.name}`, `Unexpected result from filterRarity, got ${typeof filtered}.`);
   const i = Math.floor(Math.random() * filtered.length);
   return filtered[i];
-};
+});
 
-export const startHatchEgg = async (user, eggPath) => {
-  if (!(await isValidUser(user))) throwError(`[-] startHatchEgg: User ${user} not found.`);
+export const startHatchEgg = selfWrap(async function startHatchEgg(user, eggPath) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
-  if (!eggPath || typeof eggPath !== 'string') throwError(`[-] startHatchEgg: 'eggPath' must be a string.`);
+  if (!eggPath || typeof eggPath !== 'string') throwError(`${this.name}`, `'eggPath' must be a string.`);
   const data = await loadData(user);
   data.hatching ||= {};
-  if (data.hatching.active) return `[-] startHatchEgg: user already has an egg hatching.`;
+  if (data.hatching.active) return errorMsg(`startHatchEgg`, `user already has an egg hatching.`);
   const { item: egg, pathArray } = resolveItem(data.inventory, eggPath);
-  if (!egg) return `[-] startHatchEgg: egg '${eggPath}' not found in inventory.`;
-  if (!egg.rarity) throwError(`[-] startHatchEgg: egg missing rarity field.`);
-  if (!egg.hatchTime || typeof egg.hatchTime !== 'number') throwError(`[-] startHatchEgg: egg missing hatchTime field.`);
-  if (!egg.hatchable) return `[-] startHatchEgg: not a egg or not hatchable.`;
+  if (!egg) return errorMsg(`startHatchEgg`, `egg '${eggPath}' not found in inventory.`);
+  if (!egg.rarity) throwError(`${this.name}`, `egg missing rarity field.`);
+  if (!egg.hatchTime || typeof egg.hatchTime !== 'number') throwError(`${this.name}`, `egg missing hatchTime field.`);
+  if (!egg.hatchable) return errorMsg(`startHatchEgg`, `not a egg or not hatchable.`);
   const removed = await removeItem(user, eggPath, 1);
-  if (!removed) throwError(`[-] startHatchEgg: failed to remove egg from inventory.`);
+  if (!removed) throwError(`${this.name}`, `failed to remove egg from inventory.`);
   const start = Date.now();
   const end = start + egg.hatchTime;
   data.hatching = { active: true, egg, start, end };
   await saveData(user, data);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     egg,
     start,
     end,
     remaining: egg.hatchTime,
-  };
-};
-export const hatchEgg = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] hatchEgg: User ${user} not found.`);
+  });
+});
+export const hatchEgg = selfWrap(async function hatchEgg(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
-  if (!Array.isArray(pets)) return `[-] hatchEgg: 'pets' must be an array.`;
-  if (!config?.RARITIES || !Array.isArray(config.RARITIES)) throwError(`[-] hatchEgg: config.RARITIES missing or invalid.`);
+  if (!Array.isArray(pets)) return errorMsg(`hatchEgg`, `'pets' must be an array.`);
+  if (!config?.RARITIES || !Array.isArray(config.RARITIES)) throwError(`${this.name}`, `config.RARITIES missing or invalid.`);
   const data = await loadData(user);
   const hatch = data.hatching;
-  if (!hatch?.active) return `[-] hatchEgg: no egg is currently hatching.`;
-  if (Date.now() < hatch.end) return `[-] hatchEgg: egg is still hatching, wait until ${hatch.end}.`;
+  if (!hatch?.active) return errorMsg(`hatchEgg`, `no egg is currently hatching.`);
+  if (Date.now() < hatch.end) return errorMsg(`hatchEgg`, `egg is still hatching, wait until ${hatch.end}.`);
   let hatchedPets = [];
   if (hatch.egg.hatchPets && typeof hatch.egg.hatchPets === 'object') {
     const total = Object.keys(hatch.egg.hatchPets).reduce((a, k) => a + Number(k), 0);
-    if (total !== 100) return `[-] hatchEgg: hatchPets percentages must total 100.`;
+    if (total !== 100) return errorMsg(`hatchEgg`, `hatchPets percentages must total 100.`);
     const roll = randomNumber(0, 100);
     let sum = 0;
     for (const [percent, petIds] of Object.entries(hatch.egg.hatchPets)) {
@@ -3658,7 +4211,7 @@ export const hatchEgg = async user => {
         const ids = Array.isArray(petIds) ? petIds : [petIds];
         for (const id of ids) {
           const found = pets.find(p => p.id === id);
-          if (!found) throwError(`[-] hatchEgg: pet with id '${id}' not found in pets list.`);
+          if (!found) throwError(`${this.name}`, `pet with id '${id}' not found in pets list.`);
           hatchedPets.push(found);
         }
         break;
@@ -3673,65 +4226,61 @@ export const hatchEgg = async user => {
   }
   data.hatching = { active: false };
   await saveData(user, data);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     egg: hatch.egg,
     hatchedAt: Date.now(),
     pets: hatchedPets,
-  };
-};
+  });
+});
 // REMOVE the current active egg
-export const cancelHatchEgg = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] cancelHatchEgg: User ${user} not found.`);
+export const cancelHatchEgg = selfWrap(async function cancelHatchEgg(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
-  if (!data.hatching?.active) return `[-] cancelHatchEgg: no active hatch to cancel.`;
+  if (!data.hatching?.active) return errorMsg(`cancelHatchEgg`, `no active hatch to cancel.`);
   const cancelledEgg = data.hatching.egg;
   data.hatching = { active: false };
   await saveData(user, data);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     cancelledEgg,
     cancelledAt: Date.now(),
-  };
-};
+  });
+});
 // REFUND the current active egg
-export const refundEggOnCancel = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] refundEggOnCancel: User ${user} not found.`);
+export const refundEggOnCancel = selfWrap(async function refundEggOnCancel(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
-  if (!data.hatching?.active) return `[-] refundEggOnCancel: no active hatch to cancel.`;
+  if (!data.hatching?.active) return errorMsg(`refundEggOnCancel`, `no active hatch to cancel.`);
   const egg = data.hatching.egg;
-  if (!egg?.id) throwError(`[-] refundEggOnCancel: egg data invalid, cannot refund.`);
+  if (!egg?.id) throwError(`${this.name}`, `egg data invalid, cannot refund.`);
   await giveItem(user, egg.id, 1);
   data.hatching = { active: false };
   await saveData(user, data);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     refundedEgg: egg,
     refundedAt: Date.now(),
-  };
-};
-export const checkHatchStatus = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] checkHatchStatus: User ${user} not found.`);
+  });
+});
+export const checkHatchStatus = selfWrap(async function checkHatchStatus(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const hatch = data.hatching;
-  if (!hatch?.active) return `[-] checkHatchStatus: no egg hatching.`;
-  return {
-    success: true,
+  if (!hatch?.active) return errorMsg(`checkHatchStatus`, `no egg hatching.`);
+  return successMsg(this.name, ``, {
     user,
     egg: hatch.egg,
     start: hatch.start,
     end: hatch.end,
     remaining: Math.max(0, hatch.end - Date.now()),
-  };
-};
-export const listUserEggs = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] checkHatchStatus: User ${user} not found.`);
+  });
+});
+export const listUserEggs = selfWrap(async function listUserEggs(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inventory = data?.inventory;
@@ -3745,25 +4294,24 @@ export const listUserEggs = async user => {
     }
   };
   walk(inventory);
-  return {
-    success: true,
+  return successMsg(this.name, ``, {
     user,
     total: eggs.length,
     eggs,
-  };
-};
+  });
+});
 
-export const listItemForSale = async (user, itemPath, price) => {
-  if (!(await isValidUser(user))) throwError(`[-] listItemForSale: User ${user} not found.`);
-  if (!isInteger(price) || price <= 0 || price > Number.MAX_SAFE_INTEGER) throwError(`[-] listItemForSale: Invalid price '${price}'.`);
+export const listItemForSale = selfWrap(async function listItemForSale(user, itemPath, price) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!isInteger(price) || price <= 0 || price > Number.MAX_SAFE_INTEGER) throwError(`${this.name}`, `Invalid price '${price}'.`);
   await initUserObject(user);
   const data = await loadData(user);
   const inv = (data.inventory ||= {});
   const { item } = resolveItem(inv, itemPath);
-  if (!item) return `[-] listItemForSale: Item '${itemPath}' not found.`;
-  if (item.count < 1) return `[-] listItemForSale: No item count left at '${itemPath}'.`;
+  if (!item) return errorMsg(`listItemForSale`, `Item '${itemPath}' not found.`);
+  if (item.count < 1) return errorMsg(`listItemForSale`, `No item count left at '${itemPath}'.`);
   const success = await removeItem(user, itemPath, 1);
-  if (!success) return `[-] listItemForSale: You don't have "${itemPath}" or not enough item.`;
+  if (!success) return errorMsg(`listItemForSale`, `You don't have "${itemPath}" or not enough item.`);
   const id = crypto.randomUUID();
   const timestamp = Date.now();
   const frozenItem = {
@@ -3775,41 +4323,57 @@ export const listItemForSale = async (user, itemPath, price) => {
     ...(item.metadata ? { metadata: structuredClone(item.metadata) } : {}),
   };
   await saveListing({ id, seller: user.toLowerCase(), item: frozenItem, price, timestamp });
-  return { id, seller: user.toLowerCase(), price, timestamp };
-};
-export const buyListing = async (buyer, listingId) => {
-  if (!(await isValidUser(buyer))) throwError(`[-] buyListing: Invalid buyer '${buyer}'.`);
+  return successMsg(this.name, ``, {
+    id,
+    seller: user.toLowerCase(),
+    price,
+    timestamp,
+  });
+});
+export const buyListing = selfWrap(async function buyListing(buyer, listingId) {
+  if (!(await isValidUser(buyer))) throwError(`${this.name}`, `Invalid buyer '${buyer}'.`);
   await initUserObject(buyer);
   const listing = getListingById(listingId);
-  if (!listing) return `[-] buyListing: Listing '${listingId}' not found.`;
-  if (buyer.toLowerCase() === listing.seller.toLowerCase()) return `[-] buyListing: You cannot buy your own listing.`;
+  if (!listing) return errorMsg(`buyListing`, `Listing '${listingId}' not found.`);
+  if (buyer.toLowerCase() === listing.seller.toLowerCase()) return errorMsg(`buyListing`, `You cannot buy your own listing.`);
   const balance = await getDredcoin(buyer);
-  if (balance < listing.price) return `[-] buyListing: Not enough Dredcoin (${balance}/${listing.price}).`;
+  if (balance < listing.price) return errorMsg(`buyListing`, `Not enough Dredcoin (${balance}/${listing.price}).`);
   await removeDredcoin(buyer, listing.price);
   await addItem(buyer, listing.item.id, 1, listing.item);
   if (await isValidUser(listing.seller)) await addDredcoin(listing.seller, listing.price);
   await deleteListing(listingId);
-  return { buyer, seller: listing.seller, item: listing.item, price: listing.price };
-};
-export const cancelListing = async (user, listingId) => {
-  if (!(await isValidUser(user))) throwError(`[-] cancelListing: Invalid user '${user}'.`);
+  return successMsg(this.name, ``, {
+    buyer,
+    seller: listing.seller,
+    item: listing.item,
+    price: listing.price,
+  });
+});
+export const cancelListing = selfWrap(async function cancelListing(user, listingId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user '${user}'.`);
   await initUserObject(user);
   const listing = getListing(listingId);
-  if (!listing) return `[-] cancelListing: Listing '${listingId}' not found.`;
-  if (listing.seller.toLowerCase() !== user.toLowerCase()) return `[-] cancelListing: You can only cancel your own listings.`;
+  if (!listing) return errorMsg(`cancelListing`, `Listing '${listingId}' not found.`);
+  if (listing.seller.toLowerCase() !== user.toLowerCase()) return errorMsg(`cancelListing`, `You can only cancel your own listings.`);
   await addItem(user, listing.item.id, 1, listing.item);
   await deleteListing(listingId);
-  return { user, restoredItem: listing.item, listingId };
-};
-export const refundExpiredListings = async (expiryMs = 48 * 3600 * 1000) => {
+  return successMsg(this.name, ``, {
+    user,
+    restoredItem: listing.item,
+    listingId,
+  });
+});
+export const refundExpiredListings = selfWrap(async function refundExpiredListings(expiryMs = 48 * 3600 * 1000) {
   const expiredBefore = Date.now() - expiryMs;
   const listings = getAllListings().filter(l => l.timestamp < expiredBefore);
   for (const listing of listings) {
     if (await isValidUser(listing.seller)) await addItem(listing.seller, listing.item.id, 1, listing.item);
     await deleteListing(listing.id);
   }
-  return { refunded: listings.length };
-};
+  return successMsg(this.name, ``, {
+    refunded: listings.length,
+  });
+});
 
 // confusing functions so i put comments here
 export const skillBoostList = {
@@ -3824,31 +4388,46 @@ export const skillBoostList = {
   bonusLevelChance: [],
   loot: ['lootBonus', 'dropRateMultiplier'],
 };
-export const skillExpNeeded = lvl => Math.floor(100 * Math.pow(1.5, lvl - 1));
-export const searchSkillByIdOrName = (skills, query) => {
+export const skillExpNeeded = selfWrap(async function skillExpNeeded(lvl) {
+  return Math.floor(100 * Math.pow(1.5, lvl - 1));
+});
+export const searchSkillByIdOrName = selfWrap(async function searchSkillByIdOrName(skills, query) {
   const q = query.toLowerCase();
   for (const slot in skills) {
     const skill = skills[slot];
     if (!skill || typeof skill !== 'object') continue;
     const idMatch = skill.id?.toLowerCase() === q;
     const nameMatch = skill.name?.toLowerCase() === q;
-    if (idMatch || nameMatch) return { skill, slot };
+    if (idMatch || nameMatch)
+      return successMsg(this.name, ``, {
+        skill,
+        slot,
+      });
   }
-  return { skill: null };
-};
-export const resolveSkill = (skills, skillOrSlot) => {
-  if (typeof skillOrSlot === 'object') return { skill: skillOrSlot };
+  return successMsg(this.name, ``, {
+    skill: null,
+  });
+});
+export const resolveSkill = selfWrap(async function resolveSkill(skills, skillOrSlot) {
+  if (typeof skillOrSlot === 'object')
+    return successMsg(this.name, ``, {
+      skill: skillOrSlot,
+    });
   const slot = skillOrSlot;
-  if (skills[slot]) return { skill: skills[slot], slot };
+  if (skills[slot])
+    return successMsg(this.name, ``, {
+      skill: skills[slot],
+      slot,
+    });
   return searchSkillByIdOrName(skills, skillOrSlot);
-};
-export const giveSkill = async (user, slot, skillId) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveSkill: User ${user} not found.`);
+});
+export const giveSkill = selfWrap(async function giveSkill(user, slot, skillId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const skill = data.skills;
   const def = skills[skillId];
-  if (!def) throwError(`[-] giveSkill: Skill not found '${skillId}'.`);
+  if (!def) throwError(`${this.name}`, `Skill not found '${skillId}'.`);
   skill[slot] = {
     id: def.id,
     name: def.name,
@@ -3862,63 +4441,76 @@ export const giveSkill = async (user, slot, skillId) => {
     maxLevel: def.maxLevel || null,
   };
   await saveData(user, data);
-  return { user, slot, skill: skill[slot] };
-};
-export const removeSkill = async (user, slotOrSkillId) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeSkill: Invalid user ${user}`);
+  return successMsg(this.name, ``, {
+    user,
+    slot,
+    skill: skill[slot],
+  });
+});
+export const removeSkill = selfWrap(async function removeSkill(user, slotOrSkillId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const skills = data.skills;
   const { skill, slot } = resolveSkill(skills, slotOrSkillId);
-  if (!skill || !slot) throwError(`[-] removeSkill: Skill not found: ${slotOrSkillId}`);
+  if (!skill || !slot) throwError(`${this.name}`, `Skill not found: ${slotOrSkillId}`);
   delete skills[slot];
   await saveData(user, data);
-  return { user, removedSlot: slot, removedSkill: skill };
-};
-export const applySkill = async (user, slotOrSkill, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] applySkill: Invalid user ${user}`);
+  return successMsg(this.name, ``, {
+    user,
+    removedSlot: slot,
+    removedSkill: skill,
+  });
+});
+export const applySkill = selfWrap(async function applySkill(user, slotOrSkill, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const Skills = data?.skills;
-  if (!Skills) throwError(`[-] applySkill: No skills found for user ${user}`);
+  if (!Skills) throwError(`${this.name}`, `No skills found for user ${user}`);
   const { skill, slot } = resolveSkill(Skills, slotOrSkill);
-  if (!skill || !skill.id) throwError(`[-] applySkill: Invalid skill or slot: ${slotOrSkill}`);
+  if (!skill || !skill.id) throwError(`${this.name}`, `Invalid skill or slot: ${slotOrSkill}`);
   const logic = skills[skill.id];
-  if (!logic || typeof logic.execute !== 'function') throwError(`[-] applySkill: No logic defined for skill '${skill.id}'`);
+  if (!logic || typeof logic.execute !== 'function') throwError(`${this.name}`, `No logic defined for skill '${skill.id}'`);
   const dep = await resolveDependencies(skill.dependencies, message);
   const executed = await logic.execute(user, skill, dep);
-  return { user, slotOrSkill, executed };
-};
+  return successMsg(this.name, ``, {
+    user,
+    slotOrSkill,
+    executed,
+  });
+});
 // List all skill name and id from user
-export const listSkills = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listSkills: User ${user} not found.`);
+export const listSkills = selfWrap(async function listSkills(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const skills = data?.skills || {};
   return Object.entries(skills)
     .filter(([_, skill]) => skill && typeof skill === 'object' && !Array.isArray(skill) && 'id' in skill && typeof skill.id === 'string')
     .map(([slot, skill]) => ({ slot, ...skill }));
-};
+});
 // List all skill boost multipler (listSkillBoost.total) from user by skillBoostList
-export const listSkillBoost = async (user, key) => {
-  if (!(await isValidUser(user))) throwError(`[-] listSkillBoost: User ${user} not found.`);
+export const listSkillBoost = selfWrap(async function listSkillBoost(user, key) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const allBoosts = await applySkillBoosts(user);
   const boostKeys = skillBoostList[key];
-  if (!boostKeys || !Array.isArray(boostKeys)) throwError(`[-] listSkillBoost: key ${key} not found.`);
+  if (!boostKeys || !Array.isArray(boostKeys)) throwError(`${this.name}`, `key ${key} not found.`);
   const result = {};
   for (const key of boostKeys) {
     if (allBoosts[key]) result[key] = allBoosts[key];
   }
   const total = Object.values(result).reduce((acc, mult) => acc * mult, 1);
-  return {
+  return successMsg(this.name, ``, {
+    user,
     total,
     ...result,
-  };
-};
+  });
+});
 // return total multiplier from user all skill combine
-export const userAllSkillBoosts = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] userAllSkillBoosts: Invalid user: ${user}`);
+export const userAllSkillBoosts = selfWrap(async function userAllSkillBoosts(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user: ${user}`);
   await initUserObject(user);
   const allBoosts = await applySkillBoosts(user);
   const result = {};
@@ -3931,8 +4523,8 @@ export const userAllSkillBoosts = async user => {
     result[parentKey] = { total, ...group };
   }
   return result;
-};
-export const allSkillBoosts = () => {
+});
+export const allSkillBoosts = selfWrap(async function allSkillBoosts() {
   const result = {};
   for (const skillId in skills) {
     const logic = skills[skillId];
@@ -3949,14 +4541,14 @@ export const allSkillBoosts = () => {
     }
   }
   return result;
-};
-export const giveSkillExp = async (user, skillIdOrSlot, amount = 10) => {
-  if (!(await isValidUser(user))) throwError(`[-] gainSkillExp: Invalid user ${user}`);
+});
+export const giveSkillExp = selfWrap(async function giveSkillExp(user, skillIdOrSlot, amount = 10) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const skills = data.skills || {};
   const { skill, slot } = resolveSkill(skills, skillIdOrSlot);
-  if (!skill || !slot) throwError(`[-] gainSkillExp: Skill not found: ${skillIdOrSlot}`);
+  if (!skill || !slot) throwError(`${this.name}`, `Skill not found: ${skillIdOrSlot}`);
   skill.exp = (skill.exp || 0) + amount;
   while (skill.exp >= skill.expNeeded) {
     if (skill.maxLevel && skill.level >= skill.maxLevel) {
@@ -3968,15 +4560,18 @@ export const giveSkillExp = async (user, skillIdOrSlot, amount = 10) => {
     skill.expNeeded = Math.floor(skill.expNeeded * 1.5);
   }
   await saveData(user, data);
-  return { skill, slot };
-};
-export const giveSkillLv = async (user, skillIdOrSlot, newLevel = 1, newExp = 0, newExpNeeded = null) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveSkillLv: Invalid user ${user}`);
+  return successMsg(this.name, ``, {
+    skill,
+    slot,
+  });
+});
+export const giveSkillLv = selfWrap(async function giveSkillLv(user, skillIdOrSlot, newLevel = 1, newExp = 0, newExpNeeded = null) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const skills = (data.skills ||= {});
   const { skill, slot } = resolveSkill(skills, skillIdOrSlot);
-  if (!skill || !slot) throwError(`[-] setSkillLv: Skill not found for ${skillIdOrSlot}`);
+  if (!skill || !slot) throwError(`${this.name}`, `Skill not found for ${skillIdOrSlot}`);
   skill.level += newLevel;
   if (skill.maxLevel && skill.level > skill.maxLevel) {
     skill.level = skill.maxLevel;
@@ -3984,10 +4579,14 @@ export const giveSkillLv = async (user, skillIdOrSlot, newLevel = 1, newExp = 0,
   skill.exp += newExp;
   skill.expNeeded = newExpNeeded ?? skillExpNeeded(skill.level);
   await saveData(user, data);
-  return { user, slot, skill };
-};
-export const applySkillBoosts = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] applySkillBoosts: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    slot,
+    skill,
+  });
+});
+export const applySkillBoosts = selfWrap(async function applySkillBoosts(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const skillsData = data.skills || {};
@@ -4011,9 +4610,9 @@ export const applySkillBoosts = async user => {
     }
   }
   return result;
-};
-export const repairAllSkillObject = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] repairAllSkillObject: Invalid user: ${user}`);
+});
+export const repairAllSkillObject = selfWrap(async function repairAllSkillObject(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user: ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const skillsData = (data.skills ||= {});
@@ -4063,44 +4662,44 @@ export const repairAllSkillObject = async user => {
     if (fixed.length > 0) repairedDetails.push({ slot, id: skill.id, fixed });
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     repairedCount: repairedDetails.length,
     details: repairedDetails,
-  };
-};
+  });
+});
 
 export const researchBoostList = {
   search_cooldown: ['search_cooldown'],
   search_quality: ['search_quality'],
 };
-export const research = async (user, id) => {
-  if (!(await isValidUser(user))) throwError(`[-] research: User ${user} not found.`);
+export const research = selfWrap(async function research(user, id) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const tree = researchs[id];
-  if (!tree) throwError(`[-] research: ID ${id} not found.`);
+  if (!tree) throwError(`${this.name}`, `ID ${id} not found.`);
   const complete = (data.research.complete ||= []);
   const queue = (data.research.queue ||= []);
   const levels = (data.research.levels ||= {});
-  if (complete.includes(id)) return `[-] research: ${id} already completed`;
+  if (complete.includes(id)) return errorMsg(`research`, `${id} already completed`);
   for (const req of tree.require || []) {
     if (req.startsWith('item:')) {
       const item = req.slice(5);
-      if (!hasItem(user, item)) return `[-] research: Missing item: ${item}`;
+      if (!hasItem(user, item)) return errorMsg(`research`, `Missing item: ${item}`);
     } else if (req.startsWith('quest:')) {
       const quest = req.slice(6);
-      if (!isQuestComplete(user, quest)) return `[-] research: Missing quest: ${quest}`;
+      if (!isQuestComplete(user, quest)) return errorMsg(`research`, `Missing quest: ${quest}`);
     } else if (req.startsWith('achievement:')) {
       const ach = req.slice(12);
-      if (!hasAchievement(user, ach)) return `[-] research: Missing achievement: ${ach}`;
-    } else if (!complete.includes(req)) return `[-] research: Missing research ${req}`;
+      if (!hasAchievement(user, ach)) return errorMsg(`research`, `Missing achievement: ${ach}`);
+    } else if (!complete.includes(req)) return errorMsg(`research`, `Missing research ${req}`);
   }
   const level = (levels[id] || 0) + 1;
   const cost = typeof tree.cost === 'function' ? tree.cost(level) : tree.cost || 0;
   const duration = typeof tree.duration === 'function' ? tree.duration(level) : tree.duration;
   const coins = await getDredcoin(user);
-  if (coins < cost) return `[-] research: User ${user} don't have enough ${config.CURRENCY_NAME}.`;
+  if (coins < cost) return errorMsg(`research`, `User ${user} don't have enough ${config.CURRENCY_NAME}.`);
   await removeDredcoin(user, cost);
   if (duration && duration > 0) queue.push({ id, level, start: Date.now(), duration });
   else {
@@ -4108,10 +4707,16 @@ export const research = async (user, id) => {
     levels[id] = level;
   }
   await saveData(user, data);
-  return { user, id, level, cost, queued: !!duration };
-};
-export const completeResearchQueuesIfCan = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeResearchQueuesIfCan: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    user,
+    id,
+    level,
+    cost,
+    queued: !!duration,
+  });
+});
+export const completeResearchQueuesIfCan = selfWrap(async function completeResearchQueuesIfCan(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const complete = (data.research.complete ||= []);
@@ -4134,22 +4739,22 @@ export const completeResearchQueuesIfCan = async (user, message) => {
   }
   data.research.queue = remainingQueue;
   if (completedItems.length > 0) await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     completedItems,
     remainingQueueCount: remainingQueue.length,
     hasChanges: completedItems.length > 0,
-  };
-};
-export const listResearchBoost = async (user, key) => {
-  if (!(await isValidUser(user))) throwError(`[-] listResearchBoost: User ${user} not found.`);
+  });
+});
+export const listResearchBoost = selfWrap(async function listResearchBoost(user, key) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const researchData = data.research || {};
   const complete = researchData.complete || [];
   const result = {};
   const boostKeys = researchBoostList[key];
-  if (!boostKeys || !Array.isArray(boostKeys)) throwError(`[-] listResearchBoost: key ${key} not found.`);
+  if (!boostKeys || !Array.isArray(boostKeys)) throwError(`${this.name}`, `key ${key} not found.`);
   for (const boostKey of boostKeys) {
     result[boostKey] = 1;
     for (const researchId of complete) {
@@ -4161,14 +4766,14 @@ export const listResearchBoost = async (user, key) => {
   const total = values.reduce((sum, value) => {
     return typeof value === 'number' ? sum + value : sum;
   }, 0);
-  return {
+  return successMsg(this.name, ``, {
     user,
     keys: boostKeys,
     total: total,
-  };
-};
-export const hasResearch = async (user, id, level) => {
-  if (!(await isValidUser(user))) throwError(`[-] hasResearch: User ${user} not found.`);
+  });
+});
+export const hasResearch = selfWrap(async function hasResearch(user, id, level) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const completed = data?.research?.complete || [];
@@ -4177,9 +4782,9 @@ export const hasResearch = async (user, id, level) => {
     if (typeof r === 'string') return r === id && level === 1;
     return r.id === id && r.level >= level;
   });
-};
-export const drawResearchTree = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] drawResearchTree: Invalid user ${user}`);
+});
+export const drawResearchTree = selfWrap(async function drawResearchTree(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user),
     queue = data.research?.queue || [],
@@ -4418,7 +5023,7 @@ export const drawResearchTree = async user => {
   const timestamp = Date.now();
   const filePath = path.join(paths.temp, `research_tree_${timestamp}.png`);
   await fs.writeFile(filePath, buffer);
-  return {
+  return successMsg(this.name, ``, {
     user,
     filePath,
     img: filePath,
@@ -4441,9 +5046,9 @@ export const drawResearchTree = async user => {
     spacingBaseX,
     spacingBaseY,
     baseNodeSize,
-  };
-};
-export const cleanOldResearchImages = async (dir = '../temp', maxAgeMs = 30_000) => {
+  });
+});
+export const cleanOldResearchImages = selfWrap(async function cleanOldResearchImages(dir = './temp', maxAgeMs = 30_000) {
   const now = Date.now();
   try {
     const files = await fs.readdir(dir);
@@ -4460,16 +5065,16 @@ export const cleanOldResearchImages = async (dir = '../temp', maxAgeMs = 30_000)
   } catch (err) {
     log(`[-] cleanOldResearchImages: ${err}.`);
   }
-};
+});
 
-export const giveAchievement = async (user, achievementId) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveAchievement: User ${user} not found.`);
+export const giveAchievement = selfWrap(async function giveAchievement(user, achievementId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const Achievements = (data.achievements ||= {});
-  if (Achievements[achievementId]) return `[-] giveAchievement: Achievement ${achievementId} already given to user ${user}.`;
+  if (Achievements[achievementId]) return errorMsg(`giveAchievement`, `Achievement ${achievementId} already given to user ${user}.`);
   const achievement = achievements[achievementId];
-  if (!achievement) throwError(`[-] giveAchievement: Achievement ${achievementId} not found.`);
+  if (!achievement) throwError(`${this.name}`, `Achievement ${achievementId} not found.`);
   Achievements[achievementId] = {
     id: achievement.id,
     name: achievement.name,
@@ -4480,30 +5085,30 @@ export const giveAchievement = async (user, achievementId) => {
     obtainedAt: Date.now(),
   };
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     achievementId,
     achievement: Achievements[achievementId],
-  };
-};
-export const hasAchievement = async (user, achievementId) => {
-  if (!(await isValidUser(user))) throwError(`[-] hasAchievement: User ${user} not found.`);
+  });
+});
+export const hasAchievement = selfWrap(async function hasAchievement(user, achievementId) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const achievements = data.achievements || {};
   return achievements.hasOwnProperty(achievementId) && achievements[achievementId].obtained;
-};
-export const listAchievements = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listAchievements: Invalid user ${user}`);
+});
+export const listAchievements = selfWrap(async function listAchievements(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   const achievements = data.achievements || {};
   return Object.entries(achievements)
     .filter(([_, ach]) => ach && typeof ach === 'object' && !Array.isArray(ach) && 'id' in ach && typeof ach.id === 'string')
     .map(([id, ach]) => ({ id, ...ach }));
-};
-export const completeAchievementsIfCan = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeAchievementsIfCan: User ${user} not found.`);
+});
+export const completeAchievementsIfCan = selfWrap(async function completeAchievementsIfCan(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const userAchievements = (data.achievements ||= {});
@@ -4530,20 +5135,20 @@ export const completeAchievementsIfCan = async (user, message) => {
       throwError(`[!] Error checking achievement "${key}": ${err.message}`);
     }
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     completed,
-  };
-};
+  });
+});
 
-export const isQuestComplete = async (user, id) => {
-  if (!(await isValidUser(user))) throwError(`[-] isQuestComplete: Invalid user ${user}`);
+export const isQuestComplete = selfWrap(async function isQuestComplete(user, id) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   return (data.quests?.complete || []).includes(id);
-};
-export const getQuests = async (user, { onlyObtainable = true } = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] getQuests: User ${user} not found.`);
+});
+export const getQuests = selfWrap(async function getQuests(user, { onlyObtainable = true } = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const available = [],
     inProgress = [],
@@ -4598,15 +5203,15 @@ export const getQuests = async (user, { onlyObtainable = true } = {}) => {
     inProgress.push(entry);
     available.push(entry);
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     available,
     inProgress,
     complete,
     locked,
-  };
-};
-export const getQuestsByType = async (type, filters = {}) => {
+  });
+});
+export const getQuestsByType = selfWrap(async function getQuestsByType(type, filters = {}) {
   return Object.entries(quests)
     .filter(([_, quest]) => {
       if (!quest.obtainable) return false;
@@ -4616,9 +5221,9 @@ export const getQuestsByType = async (type, filters = {}) => {
       return true;
     })
     .map(([key]) => key);
-};
-export const giveQuest = async (user, key) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveQuest: User ${user} not found.`);
+});
+export const giveQuest = selfWrap(async function giveQuest(user, key) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   if (isQuestComplete(user, key)) return false;
   await initUserObject(user);
   const data = await loadData(user);
@@ -4626,9 +5231,9 @@ export const giveQuest = async (user, key) => {
   data.quests[key] = { startedAt: Date.now() };
   await saveData(user, data);
   return true;
-};
-export const giveRandomQuests = async (user, amount = 1, { category = null, exclude = [], onlyObtainable = true, filter = null } = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] giveRandomQuests: User ${user} not found.`);
+});
+export const giveRandomQuests = selfWrap(async function giveRandomQuests(user, amount = 1, { category = null, exclude = [], onlyObtainable = true, filter = null } = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const given = [];
   const data = await loadData(user);
@@ -4650,9 +5255,9 @@ export const giveRandomQuests = async (user, amount = 1, { category = null, excl
   }
   await saveData(user, data);
   return given;
-};
-export const hasQuest = async (user, key) => {
-  if (!(await isValidUser(user))) throwError(`[-] hasQuest: User ${user} not found.`);
+});
+export const hasQuest = selfWrap(async function hasQuest(user, key) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   if (!key || typeof key !== 'string') return false;
   if (await isQuestComplete(user, key)) return true;
   await initUserObject(user);
@@ -4683,9 +5288,9 @@ export const hasQuest = async (user, key) => {
   }
   if (unmet) return false;
   return true;
-};
-export const completeQuestsIfCan = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeQuestsIfCan: Invalid user ${user}`);
+});
+export const completeQuestsIfCan = selfWrap(async function completeQuestsIfCan(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
   await initUserObject(user);
   const data = await loadData(user);
   let updated = false;
@@ -4711,37 +5316,37 @@ export const completeQuestsIfCan = async (user, message) => {
     }
   }
   if (updated) await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     completed,
     updated,
-  };
-};
-export const completeQuest = async (user, id, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeQuest: User ${user} not found.`);
-  if (!id) throwError(`[-] completeQuest: Missing user or quest ID`);
+  });
+});
+export const completeQuest = selfWrap(async function completeQuest(user, id, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!id) throwError(`${this.name}`, `Missing user or quest ID`);
   await initUserObject(user);
   const data = await loadData(user);
   const complete = (data.quests.complete ||= []);
   const quest = quests[id];
-  if (!quest) throwError(`[-] completeQuest: Quest ${id} not found.`);
+  if (!quest) throwError(`${this.name}`, `Quest ${id} not found.`);
   if (!complete.includes(id)) {
     if (typeof quest.execute === 'function') {
       try {
         const dep = resolveDependencies(quest.dependencies, message);
         await quest.execute(user, quest, dep);
       } catch (err) {
-        throwError(`[-] completeQuest: Error executing quest "${id}": ${err.message}`);
+        throwError(`${this.name}`, `Error executing quest "${id}": ${err.message}`);
       }
     }
     complete.push(id);
     await saveData(user, data);
   }
   return true;
-};
-export const removeCompleteQuest = async (user, id) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeQuestComplete: Invalid user ${user}`);
-  if (!id) throwError(`[-] removeQuestComplete: Missing quest ID`);
+});
+export const removeCompleteQuest = selfWrap(async function removeCompleteQuest(user, id) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `Invalid user ${user}`);
+  if (!id) throwError(`${this.name}`, `Missing quest ID`);
   await initUserObject(user);
   const data = await loadData(user);
   const complete = (data.quests.complete ||= []);
@@ -4749,9 +5354,9 @@ export const removeCompleteQuest = async (user, id) => {
   if (index !== -1) complete.splice(index, 1);
   await saveData(user, data);
   return true;
-};
-export const removeQuest = async (user, id) => {
-  if (!(await isValidUser(user))) throwError(`[-] removeQuest: User ${user} not found.`);
+});
+export const removeQuest = selfWrap(async function removeQuest(user, id) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const completeIdx = data.quests.complete.indexOf(id);
@@ -4760,22 +5365,22 @@ export const removeQuest = async (user, id) => {
   if (activeIdx !== -1) data.quests.active.splice(activeIdx, 1);
   await saveData(user, data);
   return true;
-};
+});
 // DAILY QUESTS
-export const seedToday = () => {
+export const seedToday = selfWrap(async function seedToday() {
   const now = new Date();
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-};
-export const seededRandom = seed => {
+});
+export const seededRandom = selfWrap(async function seededRandom(seed) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
   return () => {
     h = Math.imul(31, h + 1) | 0;
     return (h >>> 0) / 2 ** 32;
   };
-};
-export const setDailyQuests = async (user, amount = 3, filters = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] setDailyQuests: User ${user} not found.`);
+});
+export const setDailyQuests = selfWrap(async function setDailyQuests(user, amount = 3, filters = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const today = seedToday();
@@ -4795,9 +5400,9 @@ export const setDailyQuests = async (user, amount = 3, filters = {}) => {
   };
   await saveData(user, data);
   return data.dailyQuests;
-};
-export const completeDailyQuests = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeDailyQuests: User ${user} not found.`);
+});
+export const completeDailyQuests = selfWrap(async function completeDailyQuests(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const today = seedToday();
@@ -4816,17 +5421,17 @@ export const completeDailyQuests = async (user, message) => {
     }
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     date: today,
     completed: complete,
     newlyCompleted,
     total: quests.length,
     done: complete.length,
-  };
-};
-export const listDailyQuests = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listDailyQuests: User ${user} not found.`);
+  });
+});
+export const listDailyQuests = selfWrap(async function listDailyQuests(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const today = seedToday();
@@ -4872,23 +5477,23 @@ export const listDailyQuests = async user => {
       available.push(entry);
     }
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     available,
     inProgress,
     complete,
-  };
-};
+  });
+});
 // WEEKLY QUESTS
-export const seedThisWeek = () => {
+export const seedThisWeek = selfWrap(async function seedThisWeek() {
   const now = new Date();
   const year = now.getFullYear();
   const onejan = new Date(now.getFullYear(), 0, 1);
   const week = Math.ceil(((now - onejan) / 86400000 + onejan.getDay() + 1) / 7);
   return `${year}-W${week}`;
-};
-export const setWeeklyQuests = async (user, amount = 5, filters = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] setWeeklyQuests: User ${user} not found.`);
+});
+export const setWeeklyQuests = selfWrap(async function setWeeklyQuests(user, amount = 5, filters = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const thisWeek = seedThisWeek();
@@ -4908,9 +5513,9 @@ export const setWeeklyQuests = async (user, amount = 5, filters = {}) => {
   };
   await saveData(user, data);
   return data.weeklyQuests;
-};
-export const completeWeeklyQuests = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeWeeklyQuests: User ${user} not found.`);
+});
+export const completeWeeklyQuests = selfWrap(async function completeWeeklyQuests(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const thisWeek = seedThisWeek();
@@ -4929,17 +5534,17 @@ export const completeWeeklyQuests = async (user, message) => {
     }
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, {
     user,
     week: thisWeek,
     completed: complete,
     newlyCompleted,
     total: weekly.length,
     done: complete.length,
-  };
-};
-export const listWeeklyQuests = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listWeeklyQuests: User ${user} not found.`);
+  });
+});
+export const listWeeklyQuests = selfWrap(async function listWeeklyQuests(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const thisWeek = seedThisWeek();
@@ -4985,20 +5590,20 @@ export const listWeeklyQuests = async user => {
       available.push(entry);
     }
   }
-  return {
+  return successMsg(this.name, ``, {
     user,
     available,
     inProgress,
     complete: completeList,
-  };
-};
+  });
+});
 // MONTHLY QUESTS
-export const seedThisMonth = () => {
+export const seedThisMonth = selfWrap(async function seedThisMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${now.getMonth() + 1}`;
-};
-export const setMonthlyQuests = async (user, amount = 8, filters = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] setMonthlyQuests: User ${user} not found.`);
+});
+export const setMonthlyQuests = selfWrap(async function setMonthlyQuests(user, amount = 8, filters = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const currentMonth = seedThisMonth();
@@ -5018,9 +5623,9 @@ export const setMonthlyQuests = async (user, amount = 8, filters = {}) => {
   };
   await saveData(user, data);
   return data.monthlyQuests;
-};
-export const completeMonthlyQuests = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeMonthlyQuests: User ${user} not found.`);
+});
+export const completeMonthlyQuests = selfWrap(async function completeMonthlyQuests(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const currentMonth = seedMonth();
@@ -5039,17 +5644,17 @@ export const completeMonthlyQuests = async (user, message) => {
     }
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, 0, {
     user,
     date: currentMonth,
     completed: complete,
     newlyCompleted,
     total: quests.length,
     done: complete.length,
-  };
-};
-export const listMonthlyQuests = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listMonthlyQuests: User ${user} not found.`);
+  });
+});
+export const listMonthlyQuests = selfWrap(async function listMonthlyQuests(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const currentMonth = seedMonth();
@@ -5095,19 +5700,19 @@ export const listMonthlyQuests = async user => {
       available.push(entry);
     }
   }
-  return {
+  return successMsg(this.name, ``, 0, {
     user,
     available,
     inProgress,
     complete: completeList,
-  };
-};
+  });
+});
 // YEARLY QUESTS
-export const seedThisYear = () => {
+export const seedThisYear = selfWrap(async function seedThisYear() {
   return `${new Date().getFullYear()}`;
-};
-export const setYearlyQuests = async (user, amount = 7, filters = {}) => {
-  if (!(await isValidUser(user))) throwError(`[-] setYearlyQuests: User ${user} not found.`);
+});
+export const setYearlyQuests = selfWrap(async function setYearlyQuests(user, amount = 7, filters = {}) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const year = seedThisYear();
@@ -5127,9 +5732,9 @@ export const setYearlyQuests = async (user, amount = 7, filters = {}) => {
   };
   await saveData(user, data);
   return data.yearlyQuests;
-};
-export const completeYearlyQuests = async (user, message) => {
-  if (!(await isValidUser(user))) throwError(`[-] completeYearlyQuests: User ${user} not found.`);
+});
+export const completeYearlyQuests = selfWrap(async function completeYearlyQuests(user, message) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const year = seedYear();
@@ -5148,17 +5753,17 @@ export const completeYearlyQuests = async (user, message) => {
     }
   }
   await saveData(user, data);
-  return {
+  return successMsg(this.name, ``, 0, {
     user,
     date: year,
     completed: complete,
     newlyCompleted,
     total: quests.length,
     done: complete.length,
-  };
-};
-export const listYearlyQuests = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] listYearlyQuests: User ${user} not found.`);
+  });
+});
+export const listYearlyQuests = selfWrap(async function listYearlyQuests(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   await initUserObject(user);
   const data = await loadData(user);
   const year = seedThisYear();
@@ -5204,153 +5809,145 @@ export const listYearlyQuests = async user => {
       available.push(entry);
     }
   }
-  return {
+  return successMsg(this.name, ``, 0, {
     user,
     available,
     inProgress,
     complete: completeList,
-  };
-};
+  });
+});
 
-export const Permission = async (user, action, role) => {
+export const parseRank = selfWrap(async function parseRank(r) {
+  if (r == null) return null;
+  if (typeof r === "number") return r;
+  if (typeof r === "string") {
+    const parts = r.trim().split(" ");
+    if (parts.length >= 2) {
+      const num = parseFloat(parts.pop());
+      return isNaN(num) ? null : num;
+    }
+    const fallback = parseFloat(r);
+    return isNaN(fallback) ? null : fallback;
+  }
+  if (typeof r === "object" && "rank" in r) return typeof r.rank === "number" ? r.rank : parseFloat(r.rank) || null;
+  return null;
+});
+export const normalizePerms = selfWrap(async function normalizePerms(perms) {
+  if (!perms) return [];
+  if (Array.isArray(perms)) return perms;
+  if (typeof perms === "string") {
+    return perms.split(/\s*,\s*/).map(r => {
+      const match = r.match(/^(.*?)(?:\s+(-?\d+(\.\d+)?))?$/);
+      return { name: match[1].trim(), rank: match[2] ? parseFloat(match[2]) : 0 };
+    });
+  }
+  return [];
+});
+export const Permission = selfWrap(async function Permission(user, action, role) {
   if (!(await isValidUser(user))) return false;
   await initUserObject(user);
   action = action.toLowerCase();
   const data = await loadData(user);
-  let permissions = data.Permission || '';
-  if (action === 'get') {
-    if (!permissions) return 'Guest 0';
-    if (typeof role === 'string') {
-      if (role === 'max' || role === 'highest') {
-        let highestRole = permissions
-          .split(', ')
-          .map(r => {
-            let [name, rank] = r.split(' ');
-            return { name, rank: parseFloat(rank) };
-          })
-          .sort((a, b) => b.rank - a.rank)[0];
-        return highestRole ? `${highestRole.name} ${highestRole.rank}` : 'Guest 0';
+  let permissions = await normalizePerms(data.Permission);
+  if (action === "get") {
+    if (!permissions.length) return "Guest 0";
+    if (typeof role === "string") {
+      if (role === "max" || role === "highest") {
+        let highest = [...permissions].sort((a, b) => b.rank - a.rank)[0];
+        return highest ? `${highest.name} ${highest.rank}` : "Guest 0";
       }
       if (config.RANKS.hasOwnProperty(role)) return `${role} ${config.RANKS[role]}`;
       if (config.RANKS.genders?.hasOwnProperty(role)) return role;
-      const match = role.match(/^(\d+)(\+|-|=\+|=-|=)$/);
+      const match = role.match(/^(\d+)(\+|-|=\+|=-|=|>=|<=|>|<)$/);
       if (match) {
         let baseRank = parseFloat(match[1]);
         let operator = match[2];
-        let filteredRoles = Object.entries(config.RANKS)
+        let filtered = Object.entries(config.RANKS)
           .filter(([_, rank]) => {
-            if (operator === '+') return rank > baseRank;
-            if (operator === '>') return rank > baseRank;
-            if (operator === '-') return rank < baseRank;
-            if (operator === '<') return rank < baseRank;
-            if (operator === '=+') return rank >= baseRank;
-            if (operator === '>=') return rank >= baseRank;
-            if (operator === '=-') return rank <= baseRank;
-            if (operator === '<=') return rank <= baseRank;
-            if (operator === '=') return rank === baseRank;
-            if (operator === '===') return rank === baseRank;
+            if (operator === "+" || operator === ">") return rank > baseRank;
+            if (operator === "-" || operator === "<") return rank < baseRank;
+            if (operator === "=+" || operator === ">=") return rank >= baseRank;
+            if (operator === "=-" || operator === "<=") return rank <= baseRank;
+            if (operator === "=" || operator === "===") return rank === baseRank;
             return false;
           })
           .map(([name, rank]) => `${name} ${rank}`)
-          .join(', ');
-        return filteredRoles || 'No matching roles';
+          .join(", ");
+        return filtered || "No matching roles";
       }
     }
-    return permissions;
+    return permissions.map(r => `${r.name} ${r.rank}`).join(", ");
   }
-  if (action === 'set' || action === 'add') {
+  if (action === "set" || action === "add") {
     if (config.RANKS.genders?.hasOwnProperty(role)) {
-      if (permissions.includes(role)) return false;
-      permissions = permissions ? `${permissions}, ${role}` : role;
+      if (permissions.some(r => r.name === role)) return false;
+      permissions.push({ name: role, rank: 0 });
     } else {
       if (!config.RANKS.hasOwnProperty(role)) return false;
-      let roleString = `${role} ${config.RANKS[role]}`;
-      if (permissions.includes(roleString)) return false;
-      permissions = permissions ? `${permissions}, ${roleString}` : roleString;
+      if (permissions.some(r => r.name === role)) return false;
+      permissions.push({ name: role, rank: config.RANKS[role] });
     }
     data.Permission = permissions;
     await saveData(user, data);
     return true;
   }
-  if (action === 'remove' || action === 'delete') {
-    if (!permissions) return false;
-    let updatedRoles;
-    if (config.RANKS.genders?.hasOwnProperty(role))
-      updatedRoles = permissions
-        .split(', ')
-        .filter(r => r !== role)
-        .join(', ');
-    else if (config.RANKS.hasOwnProperty(role)) {
-      let removedRole = `${role} ${config.RANKS[role]}`;
-      updatedRoles = permissions
-        .split(', ')
-        .filter(r => r !== removedRole)
-        .join(', ');
-    } else return false;
-    if (updatedRoles) data.Permission = updatedRoles;
+  if (action === "remove" || action === "delete") {
+    if (!permissions.length) return false;
+    if (config.RANKS.genders?.hasOwnProperty(role)) permissions = permissions.filter(r => r.name !== role);
+    else if (config.RANKS.hasOwnProperty(role)) permissions = permissions.filter(r => r.name !== role);
+    else return false;
+    if (permissions.length) data.Permission = permissions;
     else delete data.Permission;
     await saveData(user, data);
     return true;
   }
   return false;
-};
-export const isRankBetter = (a, b = 4) => {
-  if (a == null || b == null) return false;
-  const parseRank = r => {
-    if (typeof r === 'number') return r;
-    if (typeof r === 'string') {
-      const parts = r.trim().split(' ');
-      if (parts.length === 2) {
-        const num = parseFloat(parts[1]);
-        return isNaN(num) ? null : num;
-      }
-      const fallback = parseFloat(r);
-      return isNaN(fallback) ? null : fallback;
-    }
-    return null;
-  };
+});
+export const isRankBetter = selfWrap(async function isRankBetter(a, b = 4) {
   const valA = parseRank(a);
   const valB = parseRank(b);
   if (valA == null || valB == null) return false;
   return valA > valB;
-};
-export const isRankEqual = (a, b) => {
-  if (a == null || b == null) return false;
-  const parseRank = r => {
-    if (typeof r === 'number') return r;
-    if (typeof r === 'string') {
-      const parts = r.trim().split(' ');
-      if (parts.length === 2) {
-        const num = parseFloat(parts[1]);
-        return isNaN(num) ? null : num;
-      }
-      const fallback = parseFloat(r);
-      return isNaN(fallback) ? null : fallback;
-    }
-    return null;
-  };
+});
+export const isRankEqual = selfWrap(async function isRankEqual(a, b) {
   const valA = parseRank(a);
   const valB = parseRank(b);
   if (valA == null || valB == null) return false;
   return valA === valB;
-};
+});
 
-export const donateToClanVault = async (user, clan, amount) => {
-  if (!(await isValidUser(user))) throwError(`[-] donateToClanVault: User ${user} not found.`);
+export const donateToClanVault = selfWrap(async function donateToClanVault(user, clan, amount) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const member = clanDB.prepare('SELECT 1 FROM clan_members WHERE user = ? AND clan = ?').get(user, clan);
-  if (!member) return { member, donated: false, error: '[-] donateToClanVault: not a member.' };
+  if (!member)
+    return errorMsg(this.name, `not a member.`, 0, {
+      member,
+      donated: false,
+    });
   const row = clanDB.prepare('SELECT data FROM clans WHERE id = ?').get(clan);
-  if (!row) return { donated: false, error: '[-] donateToClanVault: clan data not found.' };
+  if (!row)
+    return error(this.name, `clan data not found.`, 0, {
+      donated: false,
+    });
   const data = JSON.parse(row.data || '{}');
   if (typeof data.vault !== 'number') data.vault = 0;
   data.vault += amount;
   clanDB.prepare('UPDATE clans SET data = ? WHERE id = ?').run(JSON.stringify(data), clan);
-  return { user, clan, donates: amount, donated: true, newVault: data.vault };
-};
-export const joinClan = async (user, clan, password = null) => {
-  if (!(await isValidUser(user))) throwError(`[-] joinClan: User ${user} not found.`);
+  return successMsg(this.name, ``, 0, {
+    user,
+    clan,
+    donates: amount,
+    donated: true,
+    newVault: data.vault,
+  });
+});
+export const joinClan = selfWrap(async function joinClan(user, clan, password = null) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const info = clanDB.prepare('SELECT data FROM clans WHERE id = ?').get(clan);
-  if (!info) return { joined: false, error: '[-] joinClan: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, `clan not found.`, 0, {
+      joined: false,
+    });
   const data = JSON.parse(info.data || '{}');
   if (typeof data.settings !== 'object' || data.settings === null) data.settings = {};
   const settings = data.settings;
@@ -5360,152 +5957,287 @@ export const joinClan = async (user, clan, password = null) => {
   const hasPassword = typeof settings.password === 'string';
   const memberCount = clanDB.prepare('SELECT COUNT(*) AS total FROM clan_members WHERE clan = ?').get(clan)?.total || 0;
   const alreadyMember = clanDB.prepare('SELECT 1 FROM clan_members WHERE user = ?').get(user);
-  if (alreadyMember) return { joined: false, error: '[-] joinClan: already a member.' };
-  if (memberCount >= limit) return { joined: false, error: '[-] joinClan: member limit reached.' };
-  if (isPrivate) return { joined: false, error: '[-] joinClan: clan is private.' };
-  if (hasPassword && settings.password !== password) return { joined: false, error: '[-] joinClan: wrong password.' };
+  if (alreadyMember)
+    return errorMsg(this.name, `already a member`, 0, {
+      joined: false,
+    });
+  if (memberCount >= limit)
+    return errorMsg(this.name, `member limit reached.`, 0, {
+      joined: false,
+    });
+  if (isPrivate)
+    return errorMsg(this.name, `clan is private.`, 0, {
+      joined: false,
+    });
+  if (hasPassword && settings.password !== password)
+    return errorMsg(this.name, `wrong password`, 0, {
+      joined: false,
+    });
   if (approvalOnly) {
     const id = `${clan}-${user}`;
     clanDB.prepare('INSERT OR REPLACE INTO clan_requests (id, user, clan) VALUES (?, ?, ?)').run(id, user, clan);
-    return { user, joined: 'pending', clan };
+    return successMsg(this.name, `pending`, 0, {
+      user,
+      joined: 'pending',
+      clan,
+    });
   }
   const id = `${clan}-${user}`;
   clanDB.prepare('INSERT INTO clan_members (id, user, clan) VALUES (?, ?, ?)').run(id, user, clan);
-  return { joined: true, user, clan, limit, memberCount, passwordProtected: hasPassword };
-};
-export const leaveClan = async user => {
-  if (!(await isValidUser(user))) throwError(`[-] leaveClan: User ${user} not found.`);
+  return successMsg(this.name, ``, 0, {
+    joined: true,
+    user,
+    clan,
+    limit,
+    memberCount,
+    passwordProtected: hasPassword,
+  });
+});
+export const leaveClan = selfWrap(async function leaveClan(user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const member = clanDB.prepare('SELECT clan FROM clan_members WHERE user = ?').get(user);
-  if (!member) return { left: false, error: '[-] leaveClan: not a member.' };
+  if (!member)
+    return errorMsg(this.name, `not a member.`, 0, {
+      left: false,
+    });
   clanDB.prepare('DELETE FROM clan_members WHERE user = ?').run(user);
-  return { user, clan: member.clan, left: true };
-};
-export const changeClanSetting = async (user, clan, keyPath, value) => {
-  if (!(await isValidUser(user))) throwError(`[-] changeClanSetting: User ${user} not found.`);
+  return successMsg(this.name, ``, 0, {
+    user,
+    clan: member.clan,
+    left: true,
+  });
+});
+export const changeClanSetting = selfWrap(async function changeClanSetting(user, clan, keyPath, value) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const existing = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!existing || existing.owner !== user) return { changed: false, error: '[-] changeClanSetting: not owner or clan not found.' };
+  if (!existing || existing.owner !== user)
+    return errorMsg(this.name, `not a owner or clan not found.`, 0, {
+      changed: false,
+    });
   const data = JSON.parse(existing.data || '{}');
-  if (typeof data.settings !== 'object' || data.settings === null) return { changed: false, error: '[-] changeClanSetting: settings not initialized.' };
+  if (typeof data.settings !== 'object' || data.settings === null)
+    return errorMsg(this.name, `settings not initialized.`, 0, {
+      changed: false,
+    });
   const keys = keyPath.split('.');
   let current = data;
   for (let i = 0; i < keys.length - 1; i++) {
-    if (!(keys[i] in current)) return { changed: false, error: `[-] changeClanSetting: '${keys[i]}' path does not exist.` };
+    if (!(keys[i] in current))
+      return errorMsg(this.name, `'${keys[i]}' path does not exist.`, 0, {
+        changed: false,
+      });
     current = current[keys[i]];
-    if (typeof current !== 'object' || current === null) return { changed: false, error: `[-] changeClanSetting: '${keys[i]}' is not an object.` };
+    if (typeof current !== 'object' || current === null)
+      return errorMsg(this.name, `'${keys[i]}' is not an object.`, 0, {
+        changed: false,
+      });
   }
   const finalKey = keys.at(-1);
-  if (!(finalKey in current)) return { changed: false, error: `[-] changeClanSetting: '${keyPath}' not found.` };
-  if (keyPath === 'settings.memberLimit' && Number(value) > 50) return { changed: false, error: '[-] changeClanSetting: memberLimit cannot exceed 50.' };
+  if (!(finalKey in current))
+    return errorMsg(this.name, `'${keyPath}' not found.`, 0, {
+      changed: false,
+    });
+  if (keyPath === 'settings.memberLimit' && Number(value) > 50)
+    return errorMsg(this.name, `memberLimit cannot exceed 50.`, 0, {
+      changed: false,
+    });
   current[finalKey] = value;
   clanDB.prepare('UPDATE clans SET data = ? WHERE id = ?').run(JSON.stringify(data), clan);
-  return { user, clan, changed: true, updatedPath: keyPath, newValue: value };
-};
-export const approveJoinRequest = async (requester, clan, user) => {
-  if (!(await isValidUser(user))) throwError(`[-] approveJoinRequest: User ${user} not found.`);
-  if (!(await isValidUser(requester))) throwError(`[-] approveJoinRequest: Requester ${requester} not found.`);
+  return successMsg(this.name, ``, 0, {
+    user,
+    clan,
+    changed: true,
+    updatedPath: keyPath,
+    newValue: value,
+  });
+});
+export const approveJoinRequest = selfWrap(async function approveJoinRequest(requester, clan, user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!(await isValidUser(requester))) throwError(`${this.name}`, `Requester ${requester} not found.`);
   const info = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!info) return { approved: false, error: '[-] approveJoinRequest: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, `clan not found.`, {
+      approved: false,
+    });
   const data = JSON.parse(info.data || '{}');
   const admins = data.settings?.admins || [];
   const isOwner = info.owner === requester;
   const isAdmin = admins.includes(requester);
-  if (!isOwner && !isAdmin) return { approved: false, error: '[-] approveJoinRequest: not authorized.' };
+  if (!isOwner && !isAdmin)
+    return errorMsg(this.name, `not authorized.`, {
+      approved: false,
+    });
   const req = clanDB.prepare('SELECT * FROM clan_requests WHERE clan = ? AND user = ?').get(clan, user);
-  if (!req) return { approved: false, error: '[-] approveJoinRequest: no request found.' };
+  if (!req)
+    return errorMsg(this.name, `no request found.`, {
+      approved: false,
+    });
   const id = `${clan}-${user}`;
   clanDB.prepare('INSERT INTO clan_members (id, user, clan) VALUES (?, ?, ?)').run(id, user, clan);
   clanDB.prepare('DELETE FROM clan_requests WHERE clan = ? AND user = ?').run(clan, user);
-  return { approved: true, clan, user };
-};
-export const denyJoinRequest = async (requester, clan, user) => {
-  if (!(await isValidUser(user))) throwError(`[-] denyJoinRequest: User ${user} not found.`);
-  if (!(await isValidUser(requester))) throwError(`[-] denyJoinRequest: Requester ${requester} not found.`);
+  return successMsg(this.name, ``, {
+    approved: true,
+    clan,
+    user,
+  });
+});
+export const denyJoinRequest = selfWrap(async function denyJoinRequest(requester, clan, user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!(await isValidUser(requester))) throwError(`${this.name}`, `Requester ${requester} not found.`);
   const info = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!info) return { denied: false, error: '[-] denyJoinRequest: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, `clan not found.`, {
+      denied: false,
+    });
   const data = JSON.parse(info.data || '{}');
   const admins = data.settings?.admins || [];
   const isOwner = info.owner === requester;
   const isAdmin = admins.includes(requester);
-  if (!isOwner && !isAdmin) return { denied: false, error: '[-] denyJoinRequest: not authorized.' };
+  if (!isOwner && !isAdmin)
+    return errorMsg(this.name, `not authorized.`, {
+      denied: false,
+    });
   const result = clanDB.prepare('DELETE FROM clan_requests WHERE clan = ? AND user = ?').run(clan, user);
-  return { denied: result.changes > 0, clan, user };
-};
-export const kickMember = async (requester, clan, user) => {
-  if (!(await isValidUser(user))) throwError(`[-] kickMember: User ${user} not found.`);
-  if (!(await isValidUser(requester))) throwError(`[-] kickMember: Requester ${requester} not found.`);
+  return successMsg(this.name, ``, {
+    denied: result.changes > 0,
+    clan,
+    user,
+  });
+});
+export const kickMember = selfWrap(async function kickMember(requester, clan, user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!(await isValidUser(requester))) throwError(`${this.name}`, `Requester ${requester} not found.`);
   const info = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!info) return { kicked: false, error: '[-] kickMember: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, `clan not found.`, {
+      kicked: false,
+    });
   const data = JSON.parse(info.data || '{}');
   const admins = data.settings?.admins || [];
   const isOwner = info.owner === requester;
   const isAdmin = admins.includes(requester);
-  if (!isOwner && !isAdmin) return { kicked: false, error: '[-] kickMember: no permission.' };
-  if (user === info.owner) return { kicked: false, error: '[-] kickMember: cannot kick owner.' };
+  if (!isOwner && !isAdmin)
+    return errorMsg(this.name, `no permission.`, {
+      kicked: false,
+    });
+  if (user === info.owner)
+    return errorMsg(this.name, `cannot kick owner.`, {
+      kicked: false,
+    });
   const member = clanDB.prepare('SELECT 1 FROM clan_members WHERE user = ? AND clan = ?').get(user, clan);
-  if (!member) return { kicked: false, error: '[-] kickMember: user not in clan.' };
+  if (!member)
+    return errorMsg(this.name, `user not in clan.`, {
+      kicked: false,
+    });
   clanDB.prepare('DELETE FROM clan_members WHERE user = ?').run(user);
-  return { clan, kicked: true, user, by: requester };
-};
-export const banMember = async (requester, clan, user) => {
-  if (!(await isValidUser(user))) throwError(`[-] banMember: User ${user} not found.`);
-  if (!(await isValidUser(requester))) throwError(`[-] banMember: Requester ${requester} not found.`);
+  return successMsg(this.name, ``, {
+    clan,
+    kicked: true,
+    user,
+    by: requester,
+  });
+});
+export const banMember = selfWrap(async function banMember(requester, clan, user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!(await isValidUser(requester))) throwError(`${this.name}`, `Requester ${requester} not found.`);
   const info = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!info) return { banned: false, error: '[-] banMember: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, `clan not found.`, {
+      banned: false,
+    });
   const data = JSON.parse(info.data || '{}');
   const admins = data.settings?.admins || [];
   const isOwner = info.owner === requester;
   const isAdmin = admins.includes(requester);
-  if (!isOwner && !isAdmin) return { banned: false, error: '[-] banMember: no permission.' };
+  if (!isOwner && !isAdmin)
+    return errorMsg(this.name, `no permission.`, {
+      banned: false,
+    });
   if (!Array.isArray(data.banned)) data.banned = [];
   if (!data.banned.includes(user)) data.banned.push(user);
   clanDB.prepare('DELETE FROM clan_members WHERE user = ?').run(user);
   clanDB.prepare('DELETE FROM clan_requests WHERE user = ? AND clan = ?').run(user, clan);
   clanDB.prepare('UPDATE clans SET data = ? WHERE id = ?').run(JSON.stringify(data), clan);
-  return { clan, user, banned: true, by: requester };
-};
-export const unbanMember = async (requester, clan, user) => {
-  if (!(await isValidUser(user))) throwError(`[-] unbanMember: User ${user} not found.`);
-  if (!(await isValidUser(requester))) throwError(`[-] unbanMember: Requester ${requester} not found.`);
+  return successMsg(this.name, ``, {
+    clan,
+    user,
+    banned: true,
+    by: requester,
+  });
+});
+export const unbanMember = selfWrap(async function unbanMember(requester, clan, user) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
+  if (!(await isValidUser(requester))) throwError(`${this.name}`, `Requester ${requester} not found.`);
   const info = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!info) return { unbanned: false, error: '[-] unbanMember: clan not found.' };
+  if (!info)
+    return errorMsg(this.name, ``, {
+      unbanned: false,
+      error: '[-] unbanMember: clan not found.',
+    });
   const data = JSON.parse(info.data || '{}');
   const admins = data.settings?.admins || [];
   const isOwner = info.owner === requester;
   const isAdmin = admins.includes(requester);
-  if (!isOwner && !isAdmin) return { unbanned: false, error: '[-] unbanMember: no permission.' };
+  if (!isOwner && !isAdmin)
+    return errorMsg(this.name, `no permission.`, {
+      unbanned: false,
+    });
   if (!Array.isArray(data.banned)) data.banned = [];
   const index = data.banned.indexOf(user);
-  if (index === -1) return { unbanned: false, error: '[-] unbanMember: user not banned.' };
+  if (index === -1)
+    return errorMsg(this.name, `user not banned.`, {
+      unbanned: false,
+    });
   data.banned.splice(index, 1);
   clanDB.prepare('UPDATE clans SET data = ? WHERE id = ?').run(JSON.stringify(data), clan);
-  return { user, by: requester, clan, unbanned: true };
-};
-export const listBannedMembers = clan => {
+  return successMsg(this.name, ``, {
+    user,
+    by: requester,
+    clan,
+    unbanned: true,
+  });
+});
+export const listBannedMembers = selfWrap(async function listBannedMembers(clan) {
   const row = clanDB.prepare('SELECT data FROM clans WHERE id = ?').get(clan);
-  if (!row) return { banned: [] };
+  if (!row)
+    return successMsg(this.name, ``, {
+      banned: [],
+    });
   const data = JSON.parse(row.data || '{}');
-  return { banned: Array.isArray(data.banned) ? data.banned : [] };
-};
-export const transferClanOwnership = async (currentOwner, clan, newOwner) => {
-  if (!(await isValidUser(newOwner))) throwError(`[-] transferClanOwnership: New owner ${newOwner} not found.`);
-  if (!(await isValidUser(currentOwner))) throwError(`[-] transferClanOwnership: Current owner ${currentOwner} not found.`);
+  return successMsg(this.name, ``, {
+    banned: Array.isArray(data.banned) ? data.banned : [],
+  });
+});
+export const transferClanOwnership = selfWrap(async function transferClanOwnership(currentOwner, clan, newOwner) {
+  if (!(await isValidUser(newOwner))) throwError(`${this.name}`, `New owner ${newOwner} not found.`);
+  if (!(await isValidUser(currentOwner))) throwError(`${this.name}`, `Current owner ${currentOwner} not found.`);
   const existing = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
-  if (!existing || existing.owner !== currentOwner) return { transferred: false, error: '[-] transferClanOwnership: not owner or clan not found.' };
+  if (!existing || existing.owner !== currentOwner)
+    return errorMsg(this.name, `not owner or clan not found.`, {
+      transferred: false,
+    });
   const member = clanDB.prepare('SELECT 1 FROM clan_members WHERE user = ? AND clan = ?').get(newOwner, clan);
-  if (!member) return { transferred: false, error: '[-] transferClanOwnership: new owner not a member.' };
+  if (!member)
+    return errorMsg(this.name, `new owner not a member.`, {
+      transferred: false,
+    });
   clanDB.prepare('UPDATE clans SET owner = ? WHERE id = ?').run(newOwner, clan);
-  return { transferred: true, newOwner };
-};
-export const isAuthorized = async (user, clan) => {
-  if (!(await isValidUser(user))) throwError(`[-] isAuthorized: User ${user} not found.`);
+  return successMsg(this.name, ``, {
+    currentOwner,
+    transferred: true,
+    newOwner,
+  });
+});
+export const isAuthorized = selfWrap(async function isAuthorized(user, clan) {
+  if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const row = clanDB.prepare('SELECT * FROM clans WHERE id = ?').get(clan);
   if (!row) return false;
   if (row.owner === user) return true;
   const data = JSON.parse(row.data || '{}');
   const admins = data.settings?.admins || [];
   return admins.includes(user);
-};
-export const drawClanCard = async (clan) => {
+});
+export const drawClanCard = selfWrap(async function drawClanCard(clan) {
   const width = 360;
   const height = 180;
   const canvas = createCanvas(width, height);
@@ -5623,7 +6355,7 @@ export const drawClanCard = async (clan) => {
     ctx.fillText(badges[i], badgeBoxX + badgeBoxWidth / 2, badgeY + badgeHeight / 2);
   }
   return canvas.toBuffer('image/png');
-};
+});
 
 export const helper = {
   // --- STUFFS (SHOULD BE COMMENTED SINCE ITS BIG OBJECT) ---
@@ -5668,6 +6400,7 @@ export const helper = {
   quickSaveUserIdData, //(userId, newValue)
   loadDataByAccountCookie, //(cookie)
   loadUsernameByAccountCookie, //(cookie)
+  loadAllUsers, //()
 
   // --- USER MARKETPLACE FUNCTIONS ---
   getAllListings, //()
@@ -5691,11 +6424,15 @@ export const helper = {
   cleanUpExpiredTrades, //()
 
   // --- ULTILS FUNCTIONS ---
+  selfWrap, //(func)
   encryptAccount, //(account)
   decryptAccount, //(payload, keyHex)
   randomNumber, //(min = 0, max = 1)
   gambleRandomNumber, //(min = 0, max = 1, multiplier = 1)
   key, //()
+  errorMsg, //(func, reason, code = 0o0, rest = {})
+  throwError, //(func, msg)
+  successMsg, //(func, msg, code = 0o0, rest = {})
   fileexists, //(p)
   getFileContent, //(filePath)
   clearGetFileContentFiles, //(intervalMs = 10000, maxAgeMs = 30000),
@@ -5732,6 +6469,7 @@ export const helper = {
   convertColorToHex, //(input)
   isSafeNumber, //(n)
   chalk, //(text, color = 'white')
+  gradientMsg, //(msg, opts)
   Schedule, //()
   pvpEvent, //(type)
   newTab, //(shipId)
@@ -5752,7 +6490,7 @@ export const helper = {
   getNgrokUrl, //()
   getTax, //(amount = 0, user)
   initUserObject, //(user)
-  // --- BLUEPRINTS (CREDIT TO BLUEYESCAT) ---
+  // --- BLUEPRINTS (CREDIT TO BLUEYESCAT FOR LIBRARY) ---
   isValidBlueprint, //(bpStr)
   bluePrintCountMaterials, //(bpStr)
   bluePrintReplaceMaterial, //(bpStr, fromItem, toItem)
@@ -5818,10 +6556,15 @@ export const helper = {
   // --- STREAKS ---
   gambleStreak, //(user, streak)
   getGambleStreak, //(user)
+  calcNextStreak, //(lastClaim, type)
   dailyStreak, //(user, streak, lastClaim)
   getDailyStreak, //(user)
   weeklyStreak, //(user, streak, lastClaim)
   getWeeklyStreak, //(user)
+  monthlyStreak, //(user, streak, lastClaim)
+  getMonthlyStreak, //(user)
+  yearlyStreak, //(user, streak, lastClaim)
+  getYearlyStreak, //(user)
   // --- BANKS & COIN TRADE ---
   depositDredcoin, //(user, amount)
   withdrawDredcoin, //(user, amount)
@@ -5832,7 +6575,9 @@ export const helper = {
   getItemDefByIdOrName, //(query)
   resolveItem, //(inventory, itemPathOrObj)
   resolveContainer, //(inventory, pathArray)
+  createNewItemStack, //(user, itemPath, count, meta)
   giveItem, //(user, itemPath, count = 1)
+  transferItem, //(userA, userB, itemPath, count = 1)
   removeItem, //(user, itemPath, count = 1, removeIfZero = true)
   consumeItem, //(user, item, count, options = {})
   useItem, //(user, itemPathOrObj, count = 1, options = {}, message)
@@ -5855,6 +6600,7 @@ export const helper = {
   resetEnchants, //(user, itemPath)
   removeEnchant, //(user, itemPath, enchantIdOrIndex)
   getRecipeByIdOrName, //(table, query)
+  getAllRecipes, //(table)
   resolveInputToDef, //(input)
   getCraftingStatus, //(user)
   claimCraft, //(user)
@@ -5869,6 +6615,17 @@ export const helper = {
   disassemblePreview, //(user, item)
   reforgeItem, //(user, itemPath)
   formatItemQuality, //(quality, options = {})
+  createTrade, //(fromUser, toUser, toUserConfirmed = null)
+  addTradeItem, //(user, itemPath, count = 1)
+  addTradeCurrency, //(user, amount = 0)
+  cancelTrade, //(user)
+  confirmTrade, //(user)
+  declineTrade, //(user)
+  getActiveTrade, //(user)
+  finalizeTrade, //(user)
+  cleanUpExpiredTrades, //()
+  getUserTradeStatus, //(user)
+  autoCancelInactiveTrades, //(maxMs = 600000)
   startHatchEgg, //(user, eggPath)
   hatchEgg, //(user)
   cancelHatchEgg, //(user)
@@ -5935,6 +6692,8 @@ export const helper = {
   completeYearlyQuests, //(user, message)
   listYearlyQuests, //(user)
   // --- RANKING ---
+  parseRank, //(r)
+  normalizePerms, //(perms)
   Permission, //(user, action, role)
   isRankBetter, //(a, b = 4)
   isRankEqual, //(a, b)
@@ -5952,4 +6711,4 @@ export const helper = {
   transferClanOwnership, //(currentOwner, clan, newOwner)
   isAuthorized, //(user, clan)
   drawClanCard, //(clan)
-};
+}
