@@ -322,6 +322,24 @@ export const commandModal = async (modalDef = {}) => {
   registerModalHandlers({ [modalId]: onSubmit });
   return modal;
 };
+export const commandReRunButton = (bot, message, command, args) => {
+  if (!bot || !message || !command) return null;
+  return {
+    label: "🔁 Run again",
+    style: 2,
+    customId: `run_${crypto.randomUUID()}`,
+    onClick: async (interaction) => {
+      if (interaction.user.id !== message.author.id) return;
+      const newMessage = Object.assign(Object.create(message), {
+        _rerun: message.id,
+        id: Date.now().toString().slice(0, 17),
+        createdTimestamp: Date.now(),
+        content: `${config.PREFIX}${command} ${args.join(" ")}`
+      });
+      bot.emit("messageCreate", newMessage);
+    }
+  };
+};
 export const Embed = ({
   title = 'Untitled',
   description = 'No description provided.',

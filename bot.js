@@ -208,13 +208,18 @@ await (async function() {
     try {
       await helper.deleteAllExpiredBoosts(username);
       const originalReply = message.reply.bind(message);
-      message.reply = async (...args) => {
-        const reply = await originalReply(...args);
-        replyMap.set(message.id, reply.id);
-        return reply;
+      message.reply = async (...replyArgs) => {
+        const res = await originalReply(...replyArgs);
+        try {
+          const rerunBtn = commandUsage.commandReRunButton(bot, message, command, args);
+          if (rerunBtn) await res.edit({ components: [{ type: 1, components: [rerunBtn] }] });
+        } catch (e) {
+          log(`[message.reply.monkeypatch] ${e.stack}`, "error");
+        }
+        return res;
       };
-      await commands.execute(message, args, username, originalCommand, dependencies);
-      message.reply = originalReply;
+      try { await commands.execute(message, args, username, originalCommand, dependencies); }
+      finally { message.reply = originalReply; }
     } catch (error) {
       log(`[-] Error executing ${command}: ${error.stack}`, 'error');
       const parse = async (amount) => await helper.parseBet(amount, 0);

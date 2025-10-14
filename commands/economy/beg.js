@@ -47,7 +47,7 @@ export default {
           const cooldown = await dep.Cooldown(user, command);
           if (cooldown) {
             return interaction.reply({
-              content: `⏳ You must wait **${dep.formatTime(cooldown.remaining)}** before begging again.`,
+              content: `⏳ You must wait **${await dep.formatTime(cooldown.remaining)}** before begging again.`,
               ephemeral: true
             });
           }

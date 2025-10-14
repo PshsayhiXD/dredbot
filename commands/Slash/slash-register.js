@@ -30,7 +30,7 @@ export default async function registerSlashCommands(bot, mode = 'guild') {
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
     log(`[registerSlashCommands] Registering ${commands.length} slash command(s)...`, 'warn');
-    if (mode === 'n') return log('[registerSlashComands] aborting registerSlash (bot.slashcommands stay the same)')
+    if (mode === 'n') return log('[registerSlashComands] aborting registerSlash (bot.slashcommands stay the same)', "success");
     else if (mode === 'global') {
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, config.GUILD_ID), { body: [] });
       log('[registerSlashCommands] Cleared guild commands.', 'warn');
