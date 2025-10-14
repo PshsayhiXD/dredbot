@@ -5,14 +5,14 @@ import log from "../logger.js";
 
 export const pets = {};
 
-export const createPet = (id, options = {}, execute) => {
-  if (!id || typeof execute !== "function") throw new Error(`[-] createPet: Missing ID or execute function for ${id}`);
-  pets[id] = {
-    id,
+export const createPet = (name, options = {}, execute) => {
+  if (!name || typeof execute !== "function") throw new Error(`[-] createPet: Missing ID or execute function for ${id}`);
+  pets[name] = {
+    name,
     ...options,
     execute
   };
-  log(`[createPet] Registered pet: ${id}.`, "success");
+  log(`[createPet] Registered pet: ${name} (${options.id || -1}).`, "success");
 };
 
 export const getPetMetadata = (query) => {
@@ -36,15 +36,15 @@ export const loadAllPets = async (dir = petsDirectory, prefix = "") => {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) await loadAllPets(fullPath, prefix ? `${prefix}.${entry.name}` : entry.name);
     else if (entry.name.endsWith(".js") && entry.name !== "index.js") {
-      const petId = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
+      const pet = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
       try {
         const module = await import(pathToFileURL(fullPath).href);
         const petDef = module.default;
-        if (typeof petDef === "function") createPet(petId, {}, petDef);
+        if (typeof petDef === "function") createPet(pet, {}, petDef);
         else if (petDef?.execute && typeof petDef.execute === "function") createPet(petId, petDef, petDef.execute);
-        else log(`[loadAllPets] Skipping ${petId}, invalid export.`, "warning");
+        else log(`[loadAllPets] Skipping ${pet}, invalid export.`, "warning");
       } catch (err) {
-        log(`[loadAllPets] Failed to load ${petId}: ${err.message}`, "error");
+        log(`[loadAllPets] Failed to load ${pet}: ${err.message}`, "error");
       }
     }
   }

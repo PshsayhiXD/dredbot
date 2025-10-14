@@ -31,7 +31,7 @@ export const createQuest = (key, data) => {
     execute: typeof execute === 'function' ? execute : undefined,
     need: typeof need === 'function' ? need : undefined
   };
-  log(`[createQuest] Registered quest: ${key}.`, "success");
+  log(`[createQuest] Registered quest: ${key} (${id}).`, "success");
 };
 
 export const getQuestMetadata = (query) => {

@@ -3566,6 +3566,11 @@ export const getRecipeByIdOrName = selfWrap(async function getRecipeByIdOrName(t
   }
   return null;
 });
+export const getAllRecipes = async (table) => {
+  if (!table) return { recipes: [] };
+  const recipes = Object.values(table).filter(r => !!r);
+  return { recipes };
+};
 export const resolveInputToDef = selfWrap(async function resolveInputToDef(input) {
   if (input == null) return null;
   if (typeof input === 'string' || typeof input === 'number') return await getItemDefByIdOrName(input);
@@ -6404,6 +6409,7 @@ export const helper = {
   resetEnchants, //(user, itemPath)
   removeEnchant, //(user, itemPath, enchantIdOrIndex)
   getRecipeByIdOrName, //(table, query)
+  getAllRecipes, //(table)
   resolveInputToDef, //(input)
   getCraftingStatus, //(user)
   claimCraft, //(user)

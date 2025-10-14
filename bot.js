@@ -102,7 +102,7 @@ await (async function() {
   logAllRoutes(`https://${localIP}:${config.HTTPS_PORT}`);
   const server = https.createServer(option, app);
   
-  bot.on('ready', async () => {
+  bot.on('clientReady', async () => {
     setInterval(() => helper.cleanOldResearchImages(), config.CLEAN_RESEARCH_TREE_MS);
     await helper.clearGetFileContentFiles();
     await handleInteractionCreate(bot);

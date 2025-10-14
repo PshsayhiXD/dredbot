@@ -771,7 +771,7 @@
   "2025-10-14": {
     "files": {
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\bot.js": {
-        "size": 12564
+        "size": 12570
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\commands\\account\\anonymous.js": {
         "size": 1559
@@ -1302,7 +1302,7 @@
         "size": 399
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\achievements\\index.js": {
-        "size": 2537
+        "size": 2551
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\clan.js": {
         "size": 11153
@@ -1353,7 +1353,7 @@
         "size": 787
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\index.js": {
-        "size": 2021
+        "size": 2043
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\bone.js": {
         "size": 571
@@ -1404,7 +1404,7 @@
         "size": 122
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\jobs\\index.js": {
-        "size": 1965
+        "size": 2011
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\logger.js": {
         "size": 1317
@@ -1416,13 +1416,13 @@
         "size": 1856
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\pets\\index.js": {
-        "size": 1995
+        "size": 2019
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\quests\\common\\use_a_item.js": {
         "size": 492
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\quests\\index.js": {
-        "size": 2434
+        "size": 2442
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\ratelimit.js": {
         "size": 266
@@ -1434,13 +1434,13 @@
         "size": 215
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\index.js": {
-        "size": 1868
+        "size": 1905
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\recipes\\melting\\mithrilIngot.js": {
         "size": 212
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\index.js": {
-        "size": 2137
+        "size": 2161
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\researchs\\search_cooldown.js": {
         "size": 493
@@ -1470,7 +1470,7 @@
         "size": 541
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\index.js": {
-        "size": 1997
+        "size": 2024
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\skills\\legendary\\gambling_addicted.js": {
         "size": 713
@@ -1525,11 +1525,49 @@
       },
       "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\wss.js": {
         "size": 1940
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\common\\candycorn.js": {
+        "size": 1293
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\consumable\\common\\lollipop.js": {
+        "size": 1051
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\common\\meltedwax.js": {
+        "size": 635
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\items\\material\\epic\\jackolantern.js": {
+        "size": 633
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\recipes.crafting.js": {
+        "size": 224
+      },
+      "D:\\Pshsayhi FIles\\Dredbots\\dredbot_server_data\\utils\\validator\\recipes.melting.js": {
+        "size": 198
       }
     },
-    "msgIds": [],
-    "added": [],
-    "modified": [],
+    "msgIds": [
+      "1427475007147216989"
+    ],
+    "added": [
+      "`utils\\items\\consumable\\common\\candycorn.js` <t:1760406961:T>",
+      "`utils\\items\\consumable\\common\\lollipop.js` <t:1760406961:T>",
+      "`utils\\items\\material\\common\\meltedwax.js` <t:1760406961:T>",
+      "`utils\\items\\material\\epic\\jackolantern.js` <t:1760406961:T>",
+      "`utils\\validator\\recipes.crafting.js` <t:1760406961:T>",
+      "`utils\\validator\\recipes.melting.js` <t:1760406961:T>"
+    ],
+    "modified": [
+      "`bot.js` (12.27 KB → **12.28 KB**) <t:1760406961:T>",
+      "`utils\\achievements\\index.js` (2.48 KB → **2.49 KB**) <t:1760406961:T>",
+      "`utils\\items\\index.js` (1.97 KB → **2.00 KB**) <t:1760406961:T>",
+      "`utils\\jobs\\index.js` (1.92 KB → **1.96 KB**) <t:1760406961:T>",
+      "`utils\\pets\\index.js` (1.95 KB → **1.97 KB**) <t:1760406961:T>",
+      "`utils\\quests\\index.js` (2.38 KB → **2.38 KB**) <t:1760406961:T>",
+      "`utils\\recipes\\index.js` (1.82 KB → **1.86 KB**) <t:1760406961:T>",
+      "`utils\\researchs\\index.js` (2.09 KB → **2.11 KB**) <t:1760406961:T>",
+      "`utils\\skills\\index.js` (1.95 KB → **1.98 KB**) <t:1760406961:T>",
+      "`utils\\items\\index.js` (2.00 KB → **2.00 KB**) <t:1760407062:T>"
+    ],
     "deleted": []
   }
 }

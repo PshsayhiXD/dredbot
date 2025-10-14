@@ -31,7 +31,7 @@ export const createAchievement = (key, data) => {
     dependencies,
     execute: typeof execute === 'function' ? execute : undefined,
   };
-  log(`[createAchievement] Registered achievement: ${key}.`, "success");
+  log(`[createAchievement] Registered achievement: ${key} (${id || -1}).`, "success");
 };
 
 export const getAchievementMetadata = (query) => {

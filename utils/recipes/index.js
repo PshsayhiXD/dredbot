@@ -5,17 +5,20 @@ import log from "../logger.js";
 
 export const recipes = {};
 
-export const createRecipe = (id, data) => {
-  if (!id || typeof data !== "object" || !data.need || !data.to) throw new Error(`[-] createRecipe: Invalid or missing definition for '${id}'.`);
-  const parts = id.split(".");
+export const createRecipe = (name, data) => {
+  if (!name || typeof data !== "object" || !data.need || !data.to) throw new Error(`[-] createRecipe: Invalid or missing definition for '${id}'.`);
+  const parts = name.split(".");
   let ref = recipes;
   while (parts.length > 1) {
     const part = parts.shift();
     if (!ref[part]) ref[part] = {};
     ref = ref[part];
   }
-  ref[parts[0]] = { id, ...data };
-  log(`[createRecipe] Registered recipe: ${id}.`, "success");
+  ref[parts[0]] = { 
+    name, 
+    ...data 
+  };
+  log(`[createRecipe] Registered recipe: ${name} (${data.id || -1}).`, "success");
 };
 
 export const getRecipeMetadata = (query) => {
@@ -33,17 +36,17 @@ export const loadAllRecipes = async (dir = recipesDirectory, prefix = "") => {
     if (entry.isDirectory()) {
       await loadAllRecipes(fullPath, prefix ? `${prefix}.${entry.name}` : entry.name);
     } else if (entry.name.endsWith(".js") && entry.name !== "index.js") {
-      const recipeId = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
+      const recipe = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
       try {
         const mod = await import(pathToFileURL(fullPath).href);
         const def = mod.default;
         if (!def || !def.inputs || !def.output) {
-          log(`[loadAllRecipes] Skipping ${recipeId}, invalid format.`, "warning");
+          log(`[loadAllRecipes] Skipping ${recipe}, invalid format.`, "warning");
           continue;
         }
-        createRecipe(recipeId, def);
+        createRecipe(recipe, def);
       } catch (err) {
-        log(`[loadAllRecipes] Failed to load ${recipeId}: ${err.message}`, "error");
+        log(`[loadAllRecipes] Failed to load ${recipe}: ${err.message}`, "error");
       }
     }
   }

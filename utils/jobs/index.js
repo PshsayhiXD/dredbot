@@ -5,10 +5,14 @@ import log from "../logger.js";
 
 export const jobs = {};
 
-export const createJob = (id, options = {}, work) => {
-  if (!id || typeof work !== "function") throw new Error(`[-] createJob: Missing ID or work function for ${id}`);
-  jobs[id] = { id, ...options, work };
-  log(`[createJob] Registered job: ${id}.`, "success");
+export const createJob = (name, options = {}, work) => {
+  if (!name || typeof work !== "function") throw new Error(`[-] createJob: Missing ID or work function for ${id}`);
+  jobs[name] = { 
+    name, 
+    ...options, 
+    work 
+  };
+  log(`[createJob] Registered job: ${name} (${options.id || -1}).`, "success");
 };
 
 export const getJobMetadata = (query) => {
@@ -32,15 +36,15 @@ export const loadAllJobs = async (dir = jobsDirectory, prefix = "") => {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) await loadAllJobs(fullPath, prefix ? `${prefix}.${entry.name}` : entry.name);
     else if (entry.name.endsWith(".js") && entry.name !== "index.js") {
-      const jobId = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
+      const job = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
       try {
         const module = await import(pathToFileURL(fullPath).href);
         const jobDef = module.default;
-        if (typeof jobDef === "function") createJob(jobId, {}, jobDef);
+        if (typeof jobDef === "function") createJob(job, {}, jobDef);
         else if (jobDef?.execute && typeof jobDef.execute === "function") createJob(jobId, jobDef, jobDef.execute);
-        else log(`[loadAllJobs] Skipping ${jobId}, invalid export.`, "warning");
+        else log(`[loadAllJobs] Skipping ${job}, invalid export.`, "warning");
       } catch (err) {
-        log(`[loadAllJobs] Failed to load ${jobId}: ${err.message}`, "error");
+        log(`[loadAllJobs] Failed to load ${job}: ${err.message}`, "error");
       }
     }
   }

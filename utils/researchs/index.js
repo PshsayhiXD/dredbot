@@ -5,13 +5,13 @@ import log from '../logger.js';
 
 export const researchs = {};
 
-export const createResearch = (id, options = {}) => {
-  if (!id) throw new Error(`[-] createResearch: Missing ID`);
-  researchs[id] = {
-    id,
+export const createResearch = (name, options = {}) => {
+  if (!name) throw new Error(`[-] createResearch: Missing ID`);
+  researchs[name] = {
+    name,
     ...options
   };
-  log(`[createResearch] Registered research: ${id}.`, "success");
+  log(`[createResearch] Registered research: ${name} (${options.id || -1}).`, "success");
 };
 
 export const getResearchMetadata = (query) => {
@@ -35,14 +35,14 @@ export const loadAllResearchs = async (dir = researchDirectory, prefix = '') => 
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) await loadAllResearchs(fullPath, prefix ? `${prefix}.${entry.name}` : entry.name);
     else if (entry.name.endsWith('.js') && entry.name !== 'index.js') {
-      const researchId = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
+      const research = prefix ? `${prefix}.${entry.name.slice(0, -3)}` : entry.name.slice(0, -3);
       try {
         const module = await import(pathToFileURL(fullPath).href);
         const def = module.default;
-        if (typeof def === 'function') createResearch(researchId, {});
-        else createResearch(researchId, def || {});
+        if (typeof def === 'function') createResearch(research, {});
+        else createResearch(research, def || {});
       } catch (err) {
-        log(`[loadAllResearch] Failed to load ${researchId}: ${err.message}`, 'error');
+        log(`[loadAllResearch] Failed to load ${research}: ${err.message}`, 'error');
       }
     }
   }

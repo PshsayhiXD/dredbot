@@ -2,7 +2,7 @@
   "hashes": {
     "commands": "b82393826dd234359d201c6f14ab7475e18084c00a679741b528cf50be1f1da3",
     "tasks": "767d9865c9bef31d20183ade01217b77491e4692637b9aa56a23ca59fcf5bc6a",
-    "utils": "85bb270aade94d58676eb3785b3e3364c832ce356c64c02c9336ce1c6053459f",
+    "utils": "6b36b36f6901189f71d2a86646d1e1fd488c68cb206518e9428543dacc4d363e",
     "middleware": "3cb52ad2da28d70b45bf419f0f4abc4313f34d1233fb23219a2e956fbcbdca14",
     "routes": "b8d0e7b892d315d1fd2b70d5ca3e94da40f5650fbe56e14f596f74b9c7641c22",
     "html": "bcb0f69fdbfd392b04972e7defcea013fb7d3a35c28171152b9e3d2fb2a3ec9d",
@@ -16,6 +16,6 @@
   },
   "major": 2,
   "patch": 0,
-  "minor": 1,
-  "lastUpdate": "2025-10-14T01:16:30.965Z"
+  "minor": 3,
+  "lastUpdate": "2025-10-14T01:57:48.199Z"
 }
