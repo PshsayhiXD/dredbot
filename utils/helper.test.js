@@ -4079,23 +4079,6 @@ export const finalizeTrade = selfWrap(async function finalizeTrade(user) {
     dredcoinB: pOffer.currency || 0,
   });
 });
-export const cleanUpExpiredTrades = selfWrap(async function cleanUpExpiredTrades() {
-  const allUsers = await loadAllUsers();
-  let count = 0;
-  for (const u of allUsers) {
-    const data = await loadData(u);
-    if (data.trade?._active) {
-      const partner = data.trade.partner;
-      const pData = await loadData(partner);
-      data.trade = { _active: false };
-      pData.trade = { _active: false };
-      await saveData(u, data);
-      await saveData(partner, pData);
-      count++;
-    }
-  }
-  return successMsg(`${this.name}`, `Cleaned up ${count} trades.`, 0o0, { count });
-});
 export const getUserTradeStatus = selfWrap(async function getUserTradeStatus(user) {
   if (!(await isValidUser(user))) throwError(`${this.name}`, `User ${user} not found.`);
   const data = await loadData(user);
@@ -6623,7 +6606,6 @@ export const helper = {
   declineTrade, //(user)
   getActiveTrade, //(user)
   finalizeTrade, //(user)
-  cleanUpExpiredTrades, //()
   getUserTradeStatus, //(user)
   autoCancelInactiveTrades, //(maxMs = 600000)
   startHatchEgg, //(user, eggPath)
