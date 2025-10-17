@@ -1,17 +1,17 @@
-import { EmbedBuilder } from 'discord.js';
-import { helper }  from '../utils/helper.js'
-import config from '../config.js';
-import log from '../utils/logger.js';
+import { EmbedBuilder } from "discord.js";
+import { helper } from "../utils/helper.js";
+import config from "../config.js";
+import log from "../utils/logger.js";
+import { commandLinkButton } from "../commands/command-usage.js";
 const NGROK = await helper.getNgrokUrl();
-
-export const sendDashboardEmbed = async (client) => {
+export const sendDashboardEmbed = async client => {
   try {
     const channel = await client.channels.fetch(config.dashboardChannelID);
     if (!channel) throw new Error("[-] sendDashboardEmbed: Dashboard channel not found!");
     const embed = new EmbedBuilder()
       .setTitle("Dashboard")
       .setDescription(`**🔗 [Click to Open Dashboard](${NGROK})**\nOr copy this link:\`\`\`${NGROK}\`\`\``)
-      .setColor(0xFFA500)
+      .setColor(0xffa500)
       .addFields(
         {
           name: "📄 Legal",
@@ -26,14 +26,13 @@ export const sendDashboardEmbed = async (client) => {
       )
       .setFooter({
         text: "⚠️⚠️⚠️ DO NOT LOG IN WITH ACCOUNTS YOU DON'T OWN. YOU ARE RESPONSIBLE FOR YOUR OWN SAFETY. ⚠️⚠️⚠️"
-      }).setTimestamp();
+      })
+      .setTimestamp();
+    const components = await commandLinkButton("🌐 Open Dashboard", NGROK);
     const messages = await channel.messages.fetch({ limit: 10 });
-    const prevMsg = messages.find(msg =>
-      msg.author.id === client.user.id &&
-      msg.embeds.length
-    );
-    if (prevMsg) await prevMsg.edit({ embeds: [embed] });
-    else await channel.send({ embeds: [embed] });
+    const prevMsg = messages.find(m => m.author.id === client.user.id && m.embeds.length);
+    if (prevMsg) await prevMsg.edit({ embeds: [embed], components });
+    else await channel.send({ embeds: [embed], components });
   } catch (err) {
     log(`[-] Failed to send dashboard embed: ${err}`, "error");
   }

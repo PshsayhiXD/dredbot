@@ -340,6 +340,38 @@ export const commandReRunButton = (bot, message, command, args) => {
     }
   };
 };
+export const commandEmbedPager = async (embeds, userId) => {
+  let i = 0;
+  const build = async () => ({
+    embeds: [embeds[i]],
+    components: await commandButtonComponent([
+      {
+        label: "⬅️ Prev",
+        style: 2,
+        onClick: async int => {
+          if (int.user.id !== userId) return;
+          i = (i - 1 + embeds.length) % embeds.length;
+          await int.update(await build());
+        }
+      },
+      {
+        label: "➡️ Next",
+        style: 2,
+        onClick: async int => {
+          if (int.user.id !== userId) return;
+          i = (i + 1) % embeds.length;
+          await int.update(await build());
+        }
+      }
+    ])
+  });
+  return await build();
+};
+export const commandLinkButton = async (label, url, emoji = null) => {
+  return await commandButtonComponent([
+    { label, style: ButtonStyle.Link, url, emoji }
+  ]);
+};
 export const Embed = ({
   title = 'Untitled',
   description = 'No description provided.',
