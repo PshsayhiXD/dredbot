@@ -240,13 +240,23 @@ const button = (label, type = 'primary', attrs = {}) => {
 
 // header(title:string) → HTMLElement
 // Dashboard navbar/header.
-// ex: header("Soft UI Dashboard")
+// ex: header("Dredbot dashboard")
 const header = title => {
   const h = el('nav', 'navbar navbar-light bg-white px-3 mb-4 shadow-sm soft-card');
   const s = el('span', 'navbar-brand mb-0 h1', t(title));
   s.setAttribute('data-i18n', title);
   h.appendChild(s);
   return h;
+};
+
+// headerButton(header: HTMLElement, text: string, onClick: () => void, classes?: string) → HTMLElement
+// ex: headerButton(nav, "Settings", () => alert("Settings clicked!"))
+const headerButton = (header, text, onClick, classes = "btn btn-primary btn-sm") => {
+  const btn = el("button", classes, t(text));
+  btn.setAttribute("type", "button");
+  btn.addEventListener("click", onClick);
+  header.appendChild(btn);
+  return btn;
 };
 
 // toolbar(...controls:Node[]) → HTMLDivElement

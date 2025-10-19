@@ -4,8 +4,6 @@ export default ({ loadDataByAccountCookie, readText, log, helper }) => {
   const Router = express.Router();
   Router.post("/auto-login", async (req, res) => {
     try {
-      console.log(String(helper))
-      console.log(String(helper.Permission))
       const authToken = req.cookies["d_sess"];
       if (!authToken) return res.status(401).send("[401] No auth token provided.");
       const matchedUser = loadDataByAccountCookie(authToken);
