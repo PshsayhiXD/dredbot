@@ -209,10 +209,10 @@ const inputHere = (target, placeholder = "", onSubmit, style = {}) => {
   };
 };
 
-// card(title:string|Node, body:Node|string, footer?:Node|string) → HTMLDivElement
+// card(title:string|Node, body:string|Node, footer?:string|Node) → HTMLDivElement
 // ex: card("Title", el("div","","Body"))
 const card = (title, bodyNode, footerNode = null) => {
-  const c = el("div", "card soft-card p-3 h-100");
+  const c = el("div", "card soft-card p-3 h-100 d-flex flex-column");
   if (title) {
     const h = el("h5", "card-title mb-3");
     if (title instanceof Node) h.appendChild(title);
@@ -223,7 +223,7 @@ const card = (title, bodyNode, footerNode = null) => {
     c.appendChild(h);
   }
   if (bodyNode) {
-    const b = el("div", "card-body");
+    const b = el("div", "card-body flex-grow-1");
     if (bodyNode instanceof Node) b.appendChild(bodyNode);
     else b.innerHTML = bodyNode;
     c.appendChild(b);
@@ -277,24 +277,43 @@ const alert = (msg, type = 'info', timeout = 3000) => {
 
 // dropdown(items: (string|Node|{label:string,onClick?:()=>void})[], classes?: string, style?: object) → HTMLElement
 // ex: dropdown(["One", el("span","text-danger","HTML"), {label:"Edit", onClick:()=>{}}])
-const dropdown = (items = [], classes = "dropdown-menu show", style = {}) => {
+const dropdown = (items = [], trigger = null, classes = "dropdown-menu show", style = {}) => {
   const menu = el("ul", classes);
+  menu.style.display = "none";
   Object.assign(menu.style, style);
   items.forEach(item => {
     const li = el("li");
     let content;
-    if (typeof item === "string") {
-      content = el("span", "dropdown-item", t(item));
-    } else if (item instanceof Node) {
-      content = item;
-    } else if (item && typeof item.label === "string") {
+    if (typeof item === "string") content = el("span", "dropdown-item", t(item));
+    else if (item instanceof Node) content = item;
+    else if (item && typeof item.label === "string") {
       content = el("span", "dropdown-item", t(item.label));
-      if (typeof item.onClick === "function") content.onclick = e => { e.preventDefault(); item.onClick(e); };
+      if (typeof item.onClick === "function") content.onclick = (e) => { e.preventDefault(); item.onClick(e); };
     } else return;
-
     li.appendChild(content);
     menu.appendChild(li);
   });
+  if (trigger) {
+    const updatePosition = () => {
+      const rect = trigger.getBoundingClientRect();
+      menu.style.top = rect.bottom + window.scrollY + "px";
+      menu.style.left = rect.left + window.scrollX + "px";
+    };
+    trigger.onclick = e => {
+      e.stopPropagation();
+      if (menu.style.display === "none") {
+        updatePosition();
+        menu.style.display = "block";
+      } else {
+        menu.style.display = "none";
+      }
+    };
+    window.addEventListener("resize", () => {
+      if (menu.style.display !== "none") updatePosition();
+    });
+    document.addEventListener("click", () => { menu.style.display = "none"; });
+    document.body.appendChild(menu);
+  }
   return menu;
 };
 
@@ -569,7 +588,7 @@ const styleText = (text, { rules = [], color = null, weight = null, italic = fal
 
 // sidebarNav(items:{label:string,content:()=>Node|Promise<Node>}[]) → HTMLDivElement
 // ex: sidebarNav([{label:"Home",content:()=>el("div","","Home")}])
-const sidebarNav = items => {
+const sidebarNav = (items) => {
   const wrap = el('div', 'd-flex');
   const side = el('div', 'd-flex flex-column p-3 bg-white soft-card me-3');
   side.style.width = '220px';
@@ -650,6 +669,7 @@ const wrapWithTooltip = (text, maxWidth) => {
 //  opts.collapsIf1:{bool:boolean, exclude:string[]} 
 //   - bool → if true, even single child collapses
 //   - exclude → array of section titles to skip collapsing
+// ex: buildNestedSections([["Account",[["General",[["Username","Alice"],["Email","alice@example.com"]]]]]])
 const buildNestedSections = (data, depth = 0, opts = { collapsIf1: { bool:false, exclude:[] } }) => {
   const wrap = el("div", depth === 0 ? "" : "p-2");
   data.forEach(([title, children]) => {
@@ -725,9 +745,41 @@ const fieldCardCollapsibleSections = (title, sections, opts={collapsIf1:{bool:fa
 
 
 
-// ---------------- Dashboard with Sidebar ----------------
+// ---------------- Dashboard ----------------
 const dash = document.getElementById('dashboard');
-dash.appendChild(header('Dredbot Admin Dashboard'));
+const dashHeader = header("Dredbot Admin Dashboard");
+dash.appendChild(dashHeader);
+
+const hamburgerBtn = el("button", "btn btn-light btn-sm");
+hamburgerBtn.type = "button";
+hamburgerBtn.textContent = "☰";
+hamburgerBtn.style.fontSize = "18px";
+hamburgerBtn.style.padding = "4px 8px";
+hamburgerBtn.style.cursor = "pointer";
+const langMenu = dropdown([
+  { label: "EN", onClick: () => alert("EN selected") },
+  { label: "FR", onClick: () => alert("FR selected") },
+  { label: "ES", onClick: () => alert("ES selected") }
+], hamburgerBtn);
+langMenu.style.display = "none";
+langMenu.style.position = "absolute";
+langMenu.style.minWidth = "80px";
+langMenu.style.zIndex = "2";
+document.body.appendChild(langMenu);
+hamburgerBtn.onclick = e => {
+  e.stopPropagation();
+  if (langMenu.style.display === "none") {
+    const rect = hamburgerBtn.getBoundingClientRect();
+    langMenu.style.top = rect.bottom + "px";
+    langMenu.style.left = rect.left + "px";
+    langMenu.style.display = "block";
+  } else {
+    langMenu.style.display = "none";
+  }
+};
+const langWrapper = el("div", "ms-auto");
+langWrapper.appendChild(hamburgerBtn);
+dashHeader.appendChild(langWrapper);
 
 dash.appendChild(
   sidebarNav([
@@ -763,25 +815,28 @@ dash.appendChild(
               ]]]
             ],
           ]),
-          (profile.inventory && profile.inventory.length >= 1) ? fieldCardCollapsibleSections("Inventory",
-            Object.entries(profile.inventory || {}).map(([key, item]) => [
-              item.name || key,
-              [[
-                "Details",
-                [
-                  ["Name", item.name || "—"],
-                  ["Description", item.description || "—"],
-                  ["Rarity", item.rarity ? pillText(item.rarity, getRarityStyle(item.rarity).color) : "—"],
-                  ["Enchanted", pillText(item.enchanted ? "Yes" : "No", item.enchanted ? "success" : "secondary")],
-                  ["Enchants", Array.isArray(item.enchants) && item.enchants.length
-                    ? pillText(item.enchants.map(e => e.name || "—").join(", "), getRarityStyle(item.enchants[0].rarity).color)
-                    : pillText("—", "secondary")
-                  ],
-                  ["Icon", item.icon ? item.icon : "—"]
-                ]
-              ]]
-            ])
-          ) : null
+          ...(profile.inventory && profile.inventory.length >= 1
+            ? [fieldCardCollapsibleSections("Inventory",
+                Object.entries(profile.inventory).map(([key, item]) => [
+                  item.name || key,
+                  [[
+                    "Details",
+                    [
+                      ["Name", item.name || "—"],
+                      ["Description", item.description || "—"],
+                      ["Rarity", item.rarity ? pillText(item.rarity, getRarityStyle(item.rarity).color) : "—"],
+                      ["Enchanted", pillText(item.enchanted ? "Yes" : "No", item.enchanted ? "success" : "secondary")],
+                      ["Enchants", Array.isArray(item.enchants) && item.enchants.length
+                        ? pillText(item.enchants.map(e => e.name || "—").join(", "), getRarityStyle(item.enchants[0].rarity).color)
+                        : pillText("—", "secondary")
+                      ],
+                      ["Icon", item.icon ? item.icon : "—"]
+                    ]
+                  ]]
+                ])
+              )]
+            : []
+          )
         );
       },
     },
@@ -804,7 +859,6 @@ dash.appendChild(
 
 // ---------------- Animation ----------------
 // animateCards() → void
-// Apply staggered reveal animation to all cards.
 const animateCards = () => {
   document.querySelectorAll('.soft-card').forEach((c, i) => setTimeout(() => c.classList.add('show'), 100 * i));
 };
@@ -813,6 +867,7 @@ const animateCards = () => {
 
 // ---------------- Init ---------------
 window.addEventListener('load', () => {
+  document.addEventListener("click", () => langMenu.style.display = "none");
   animateCards();
   loadLanguage('en');
 });
