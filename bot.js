@@ -98,7 +98,7 @@ await (async function() {
   }, 60 * 1000); // 1m
 
   await Middleware(app);
-  await createRoute.default(app, { ...db, log }, bot);
+  await createRoute.default(app, { ...db, log, helper }, bot);
   logAllRoutes(`https://${localIP}:${config.HTTPS_PORT}`);
   const server = https.createServer(option, app);
   
