@@ -1,7 +1,6 @@
 // ---------------- Translation ----------------
 
 // loadLanguage(lang?:string) → void
-// Load translation JSON file and refresh all translatable elements.
 // ex: loadLanguage("en")
 let translations = {};
 const loadLanguage = async (lang = 'en') => {
@@ -15,12 +14,11 @@ const loadLanguage = async (lang = 'en') => {
 };
 
 // t(key:string) → string
-// Return translated text or fallback key.
 // ex: t("Welcome")
 const t = key => translations[key] || key;
 
 // refreshTranslations() → void
-// Update all DOM elements with [data-i18n] attributes.
+// ex: refreshTranslations()
 const refreshTranslations = () => {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.getAttribute('data-i18n');
@@ -28,11 +26,13 @@ const refreshTranslations = () => {
   });
 };
 
+
+
+
 // ---------------- Colorize -------------------
 
 // colorFactory(val:string, opts?:{animated?:boolean,speed?:number,direction?:string}) → CSSStyleDeclaration
-// Return style object for solid/gradient colors with optional animation.
-// ex: colorFactory("linear-gradient(...)", {animated:true,speed:5})
+// // ex: colorFactory("linear-gradient(...)", {animated:true,speed:5})
 const colorFactory = (val, { animated = false, speed = 3, direction = "to right" } = {}) => {
   if (!val) return { color: "#6c757d" };
   if (/gradient/i.test(val)) {
@@ -64,7 +64,6 @@ const colorFactory = (val, { animated = false, speed = 3, direction = "to right"
 };
 
 // getRarityStyle(rarity:string, opts?:object) → CSSStyleDeclaration
-// Return style object based on rarity key (common, rare, epic, etc.).
 // ex: getRarityStyle("Epic",{animated:true})
 const raritiesColor = {
   common: "#6c757d",
@@ -82,7 +81,6 @@ const getRarityStyle = (rarity, opts = {}) => {
 };
 
 // animationColor(name:string, speed:number, content:string) → string
-// Define CSS keyframe animation and return animation ID.
 // ex: animationColor("rainbow",3,"0%{...}")
 const animationColor = (name, speed = 3, content = `
   0% { background-position: 0% 50%; }
@@ -101,7 +99,6 @@ const animationColor = (name, speed = 3, content = `
 };
 
 // colorNode(text:string, color:string, opts?:{animated?:boolean,speed?:number,animationContent?:string}) → HTMLSpanElement
-// Return span with solid/gradient text + optional animation.
 // ex: colorNode("Epic Item","linear-gradient(...)",{animated:true})
 const colorNode = (text, color, { animated = false, speed = 3, animationContent } = {}) => {
   const span = el("span", "", text);
@@ -127,10 +124,18 @@ const colorNode = (text, color, { animated = false, speed = 3, animationContent 
   return span;
 };
 
+
+
+// ---------------- Helper Functions -----------------
+// isFalsy(value:any) → boolean
+// ex: isFalsy(false)
+const isFalsy = (value) => !value;
+
+
+
 // ---------------- Factory Functions ----------------
 
 // el(tag:string, cls?:string, html?:string) → HTMLElement
-// Create DOM element.
 // ex: el("div","text-muted","Hello")
 const el = (tag, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -140,7 +145,6 @@ const el = (tag, cls = '', html = '') => {
 };
 
 // row(...children:Node[]) → HTMLDivElement
-// Create Bootstrap row with gap.
 // ex: row(col("col-md-6", card("Title", el("div","","Body"))))
 const row = (...children) => {
   const r = el('div', 'row g-4');
@@ -149,7 +153,6 @@ const row = (...children) => {
 };
 
 // col(width:string, child:Node) → HTMLDivElement
-// Wrap a child inside Bootstrap column.
 // ex: col("col-md-4", kpiCard("Users","123"))
 const col = (w, child) => {
   const c = el('div', w);
@@ -157,8 +160,56 @@ const col = (w, child) => {
   return c;
 };
 
+// inputField(label: string, type?: string, placeholder?: string, onChange?: (val:string)=>void) → HTMLElement
+// ex: inputField("Username", "text", "Enter username", val=>console.log(val))
+const inputField = (label, type = "text", placeholder = "", onChange) => {
+  const wrap = el("div", "mb-3");
+  if (label) {
+    const l = el("label", "form-label", t(label));
+    l.setAttribute("data-i18n", label);
+    wrap.appendChild(l);
+  }
+  const input = el("input", "form-control");
+  input.type = type;
+  input.placeholder = placeholder;
+  input.addEventListener("input", e => onChange?.(e.target.value));
+  wrap.appendChild(input);
+  return wrap;
+};
+
+// inputHere(target: HTMLElement, placeholder?: string, onSubmit?: (val:string)=>void, style?: object) → void
+// ex: inputHere(btn, "Type new value", val => console.log(val), { minWidth: "120px", color: "red" })
+const inputHere = (target, placeholder = "", onSubmit, style = {}) => {
+  target.onclick = e => {
+    const input = el("input", "form-control form-control-sm");
+    input.type = "text";
+    input.placeholder = placeholder;
+    input.value = target.textContent || "";
+
+    Object.assign(input.style, { minWidth: "100px", ...style });
+
+    const finish = () => {
+      onSubmit?.(input.value);
+      target.style.display = "";
+      input.remove();
+    };
+
+    input.addEventListener("blur", finish);
+    input.addEventListener("keydown", evt => {
+      if (evt.key === "Enter") finish();
+      if (evt.key === "Escape") {
+        input.value = target.textContent;
+        finish();
+      }
+    });
+
+    target.style.display = "none";
+    target.parentNode.insertBefore(input, target);
+    input.focus();
+  };
+};
+
 // card(title:string|Node, body:Node|string, footer?:Node|string) → HTMLDivElement
-// Generic card with header/body/footer.
 // ex: card("Title", el("div","","Body"))
 const card = (title, bodyNode, footerNode = null) => {
   const c = el("div", "card soft-card p-3 h-100");
@@ -187,7 +238,6 @@ const card = (title, bodyNode, footerNode = null) => {
 };
 
 // kpiCard(label:string, value:string|number) → HTMLDivElement
-// Metric/KPI card.
 // ex: kpiCard("Revenue","$58K")
 const kpiCard = (label, value) => {
   const d = el('div');
@@ -196,7 +246,6 @@ const kpiCard = (label, value) => {
 };
 
 // listCard(title:string, items:string[]) → HTMLDivElement
-// Card with list-group items.
 // ex: listCard("Activity", ["Login - Alice","Logout - Bob"])
 const listCard = (title, items) => {
   const ul = el('ul', 'list-group list-group-flush');
@@ -210,7 +259,6 @@ const listCard = (title, items) => {
 };
 
 // badge(text:string, type:string) → HTMLSpanElement
-// Bootstrap badge.
 // ex: badge("New","success")
 const badge = (text, type = 'primary') => {
   const b = el('span', `badge bg-${type} soft-badge`, t(text));
@@ -219,7 +267,6 @@ const badge = (text, type = 'primary') => {
 };
 
 // alert(msg:string, type:string, timeout?:number) → HTMLDivElement
-// Auto-fading dismissible alert.
 // ex: alert("Saved!","success",2000)
 const alert = (msg, type = 'info', timeout = 3000) => {
   const a = el('div', `alert alert-${type} alert-dismissible fade show mb-4`);
@@ -228,8 +275,30 @@ const alert = (msg, type = 'info', timeout = 3000) => {
   return a;
 };
 
+// dropdown(items: (string|Node|{label:string,onClick?:()=>void})[], classes?: string, style?: object) → HTMLElement
+// ex: dropdown(["One", el("span","text-danger","HTML"), {label:"Edit", onClick:()=>{}}])
+const dropdown = (items = [], classes = "dropdown-menu show", style = {}) => {
+  const menu = el("ul", classes);
+  Object.assign(menu.style, style);
+  items.forEach(item => {
+    const li = el("li");
+    let content;
+    if (typeof item === "string") {
+      content = el("span", "dropdown-item", t(item));
+    } else if (item instanceof Node) {
+      content = item;
+    } else if (item && typeof item.label === "string") {
+      content = el("span", "dropdown-item", t(item.label));
+      if (typeof item.onClick === "function") content.onclick = e => { e.preventDefault(); item.onClick(e); };
+    } else return;
+
+    li.appendChild(content);
+    menu.appendChild(li);
+  });
+  return menu;
+};
+
 // button(label:string, type:string, attrs?:Record<string,string>) → HTMLButtonElement
-// Bootstrap button with attributes.
 // ex: button("Click","primary",{"data-id":"1"})
 const button = (label, type = 'primary', attrs = {}) => {
   const b = el('button', `btn btn-${type} soft-btn me-2`, t(label));
@@ -238,10 +307,24 @@ const button = (label, type = 'primary', attrs = {}) => {
   return b;
 };
 
+// dropdownButton(label: string, items: (string|Node|{label:string,onClick?:()=>void})[], type?: string, style?: object, classes?: string) → HTMLElement
+// ex: dropdownButton("Actions", ["Edit",{label:"Delete",onClick:()=>{}}])
+const dropdownButton = (label, items = [], type = "primary", style = {}, classes = "btn btn-primary dropdown-toggle") => {
+  const wrapper = el("div", "dropdown d-inline-block");
+  const btn = el("button", classes, t(label));
+  btn.setAttribute("type", "button");
+  btn.setAttribute("data-bs-toggle", "dropdown");
+  btn.setAttribute("aria-expanded", "false");
+  Object.assign(btn.style, style);
+  wrapper.appendChild(btn);
+  const menu = dropdown(items, "dropdown-menu");
+  wrapper.appendChild(menu);
+  return wrapper;
+};
+
 // header(title:string) → HTMLElement
-// Dashboard navbar/header.
 // ex: header("Dredbot dashboard")
-const header = title => {
+const header = (title) => {
   const h = el('nav', 'navbar navbar-light bg-white px-3 mb-4 shadow-sm soft-card');
   const s = el('span', 'navbar-brand mb-0 h1', t(title));
   s.setAttribute('data-i18n', title);
@@ -249,18 +332,19 @@ const header = title => {
   return h;
 };
 
-// headerButton(header: HTMLElement, text: string, onClick: () => void, classes?: string) → HTMLElement
-// ex: headerButton(nav, "Settings", () => alert("Settings clicked!"))
-const headerButton = (header, text, onClick, classes = "btn btn-primary btn-sm") => {
+// headerButton(header: HTMLElement, text: string, onClick: () => void, style?: object, classes?: string) → HTMLElement
+// ex: headerButton(nav, "Settings", () => alert("Settings clicked!"), { marginLeft: "10px" }, "btn btn-success")
+const headerButton = (header, text, onClick, style = {}, classes = "btn btn-primary btn-sm") => {
   const btn = el("button", classes, t(text));
   btn.setAttribute("type", "button");
   btn.addEventListener("click", onClick);
+  Object.assign(btn.style, style);
   header.appendChild(btn);
   return btn;
 };
 
+
 // toolbar(...controls:Node[]) → HTMLDivElement
-// Horizontal flex container.
 // ex: toolbar(button("Save","success"))
 const toolbar = (...controls) => {
   const t = el('div', 'd-flex mb-3');
@@ -269,7 +353,6 @@ const toolbar = (...controls) => {
 };
 
 // formCard(title:string, fields:{label:string,type:string,placeholder?:string}[], btn:string, onSubmit:(vals:Record<string,string>)=>void) → HTMLDivElement
-// Form inside card.
 // ex: formCard("Add User",[{"label":"Name","type":"text"}],"Add",vals=>{})
 const formCard = (title, fields, btnLabel = 'Submit', onSubmit = () => {}) => {
   const f = el('form');
@@ -293,7 +376,6 @@ const formCard = (title, fields, btnLabel = 'Submit', onSubmit = () => {}) => {
 };
 
 // modal(id:string, title:string, body:string|Node) → HTMLDivElement
-// Bootstrap modal with header/body/footer.
 // ex: modal("info","Info","This is a modal")
 const modal = (id, title, body) => {
   const m = el('div', 'modal fade');
@@ -310,7 +392,6 @@ const modal = (id, title, body) => {
 };
 
 // pagination(pages:number, active:number, onClick:(i:number)=>void) → HTMLElement
-// Page number controls.
 // ex: pagination(5,1,i=>console.log(i))
 const pagination = (pages, active = 1, onClick = () => {}) => {
   const nav = el('nav', 'd-flex justify-content-center mt-3');
@@ -331,7 +412,6 @@ const pagination = (pages, active = 1, onClick = () => {}) => {
 };
 
 // tableWithPagination(title:string, cols:string[], data:(string|number)[][], pageSize:number) → HTMLDivElement
-// Paginated table inside card.
 // ex: tableWithPagination("Orders",["ID","User"],[[1,"Alice"]],5)
 const tableWithPagination = (title, cols, data, pageSize = 3) => {
   const container = el('div', 'table-responsive');
@@ -366,7 +446,6 @@ const tableWithPagination = (title, cols, data, pageSize = 3) => {
 };
 
 // tableWithButtons(title:string, cols:string[], data:(string|number)[][], buttons:{label:string,type?:string,onClick?:(row:any[],idx:number)=>void}[]) → HTMLDivElement
-// Table with row action buttons.
 // ex: tableWithButtons("Users",["Name"],[["Alice"]],[{label:"Edit"}])
 const tableWithButtons = (title, cols, data, buttons = []) => {
   const container = el('div', 'table-responsive');
@@ -402,7 +481,6 @@ const tableWithButtons = (title, cols, data, buttons = []) => {
 };
 
 // tableWithPaginationAndButtons(title:string, cols:string[], data:(string|number)[][], pageSize:number, buttons:{label:string,type?:string,onClick?:(row:any[],idx:number)=>void}[]) → HTMLDivElement
-// Paginated table with row action buttons.
 // ex: tableWithPaginationAndButtons("Users",["Name"],[["Alice"]],5,[{label:"Edit"}])
 const tableWithPaginationAndButtons = (title, cols, data, pageSize = 3, buttons = []) => {
   const container = el('div', 'table-responsive');
@@ -449,7 +527,6 @@ const tableWithPaginationAndButtons = (title, cols, data, pageSize = 3, buttons 
 };
 
 // pillText(text:string, color:string) → HTMLSpanElement
-// Pill-shaped badge text.
 // ex: pillText("Active","success")
 const pillText = (text, color = "primary") => {
   const cls = "px-3 py-1 rounded-pill fw-semibold me-2";
@@ -464,7 +541,6 @@ const pillText = (text, color = "primary") => {
 };
 
 // styleText(text:string, opts?:object) → HTMLSpanElement
-// Per-character styled text with rules.
 // ex: styleText("Hello",{rules:[{index:1,color:"red"}]})
 const styleText = (text, { rules = [], color = null, weight = null, italic = false, underline = false } = {}) => {
   const span = el('span');
@@ -492,7 +568,6 @@ const styleText = (text, { rules = [], color = null, weight = null, italic = fal
 };
 
 // sidebarNav(items:{label:string,content:()=>Node|Promise<Node>}[]) → HTMLDivElement
-// Sidebar navigation with content area.
 // ex: sidebarNav([{label:"Home",content:()=>el("div","","Home")}])
 const sidebarNav = items => {
   const wrap = el('div', 'd-flex');
@@ -532,7 +607,6 @@ const sidebarNav = items => {
 };
 
 // addCopyIcon(value:string|Node) → HTMLSpanElement
-// Text with clipboard copy icon.
 // ex: addCopyIcon("Copy me!")
 const addCopyIcon = (value) => {
   const wrap = el("span", "d-inline-flex align-items-center");
@@ -559,7 +633,6 @@ const addCopyIcon = (value) => {
 };
 
 // wrapWithTooltip(text:string, maxWidth:string) → HTMLSpanElement
-// Wrap text with max width + tooltip.
 // ex: wrapWithTooltip("Long text","40%")
 const wrapWithTooltip = (text, maxWidth) => {
   const span = el("span");
@@ -574,7 +647,7 @@ const wrapWithTooltip = (text, maxWidth) => {
 };
 
 // buildNestedSections(data:array, depth?:number, opts?:object) → HTMLDivElement
-// opts.collapsIf1:{bool:boolean, exclude:string[]} 
+//  opts.collapsIf1:{bool:boolean, exclude:string[]} 
 //   - bool → if true, even single child collapses
 //   - exclude → array of section titles to skip collapsing
 const buildNestedSections = (data, depth = 0, opts = { collapsIf1: { bool:false, exclude:[] } }) => {
@@ -651,6 +724,7 @@ const fieldCardCollapsibleSections = (title, sections, opts={collapsIf1:{bool:fa
 };
 
 
+
 // ---------------- Dashboard with Sidebar ----------------
 const dash = document.getElementById('dashboard');
 dash.appendChild(header('Dredbot Admin Dashboard'));
@@ -689,7 +763,7 @@ dash.appendChild(
               ]]]
             ],
           ]),
-          profile.inventory && fieldCardCollapsibleSections("Inventory",
+          (profile.inventory && profile.inventory.length >= 1) ? fieldCardCollapsibleSections("Inventory",
             Object.entries(profile.inventory || {}).map(([key, item]) => [
               item.name || key,
               [[
@@ -707,7 +781,7 @@ dash.appendChild(
                 ]
               ]]
             ])
-          )
+          ) : null
         );
       },
     },
@@ -726,12 +800,18 @@ dash.appendChild(
   ])
 );
 
+
+
 // ---------------- Animation ----------------
 // animateCards() → void
 // Apply staggered reveal animation to all cards.
 const animateCards = () => {
   document.querySelectorAll('.soft-card').forEach((c, i) => setTimeout(() => c.classList.add('show'), 100 * i));
 };
+
+
+
+// ---------------- Init ---------------
 window.addEventListener('load', () => {
   animateCards();
   loadLanguage('en');
