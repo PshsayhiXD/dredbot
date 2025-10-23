@@ -4,26 +4,106 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy - Dredbot</title>
+  <meta name="description" content="Learn how Dredbot protects your privacy with session-based security and minimal data collection.">
   <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
   <style>
-    .policy-section {
-      padding: 2rem;
-      border-left: 4px solid #0d6efd;
-      background: #fff;
-      border-radius: .5rem;
-      box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.05);
-      margin-bottom: 2rem;
+    body {
+      background: #f8fafc;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #212529;
+      scroll-behavior: smooth;
     }
-    h1, h4 { font-weight: 600; }
-    footer small { opacity: 0.7; }
+    .navbar {
+      background: linear-gradient(90deg, #02b912, #008a0b);
+    }
+    header {
+      background: linear-gradient(115deg, #008a0b, #32fa43);
+      color: #fff;
+      padding: 5rem 0 4rem;
+      text-align: center;
+    }
+    header h1 {
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .main-content {
+      flex: 1 1 65%;
+      min-width: 300px;
+    }
     .toc {
+      flex: 1 1 25%;
+      max-width: 300px;
       position: sticky;
       top: 6rem;
+      align-self: start;
+      background: #fff;
+      border-radius: .75rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      height: fit-content;
+    }
+    .toc h6 {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: #008a0b;
+      margin-bottom: 1rem;
+    }
+    .toc a {
+      text-decoration: none;
+      color: #212529;
+      display: block;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .toc a:hover {
+      color: #008a0b;
+    }
+    .policy-section {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 16px rgba(13,110,253,0.05);
+      border-left: 4px solid #008a0b;
+    }
+    .policy-section h2 {
+      font-weight: 600;
+      color: #008a0b;
+      margin-bottom: 1rem;
+    }
+    .policy-section h3 {
+      font-weight: 500;
+      color: #008a0b;
+      margin-top: 1.5rem;
+    }
+    footer {
+      background: #008a0b;
+      color: #fff;
+      font-size: 0.9rem;
+      padding: 2rem 0;
+      text-align: center;
+    }
+    footer small {
+      opacity: 0.85;
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: none;
+      z-index: 50;
     }
   </style>
 </head>
-<body class="bg-light d-flex flex-column min-vh-100">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+<body class="d-flex flex-column min-vh-100">
+  <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
     <div class="container">
       <a class="navbar-brand fw-bold" href="/">Dredbot</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -37,99 +117,145 @@
       </div>
     </div>
   </nav>
-  <header class="bg-primary text-light py-5 mb-4">
-    <div class="container text-center">
-      <h1 class="display-5">Privacy Policy</h1>
-      <p class="lead mb-0">Effective Date: July 13, 2025</p>
+
+  <header>
+    <div class="container">
+      <h1 class="display-6 mb-3">Privacy Policy</h1>
+      <p class="mb-0">Effective Date: July 13, 2025</p>
     </div>
   </header>
-  <main class="container mb-5">
-    <div class="row">
-      <div class="col-lg-9">
-        <div class="policy-section" id="intro">
-          <p>We respect your privacy. This policy explains what we collect and how it's used.</p>
-        </div>
-        <div class="policy-section" id="collect">
-          <h4>1. What We Collect</h4>
+
+  <main class="container my-5 flex-grow-1">
+    <div class="content">
+      <div class="main-content">
+
+        <section class="policy-section" id="overview">
+          <h2>1. Overview</h2>
+          <p>At Dredbot, we respect your privacy and handle your data responsibly. We collect only what's necessary to provide a secure and functional service. This Privacy Policy outlines how your information is used, stored, and protected - as well as how you can manage or delete it anytime.</p>
+        </section>
+
+        <section class="policy-section" id="dataWeCollect">
+          <h2>2. Information We Collect</h2>
+          <h3>Discord Account Information</h3>
+          <p>When you log in using Discord, Dredbot receives limited account data from Discord's OAuth2 API:</p>
           <ul>
-            <li><strong>Discord ID:</strong> When you create an account via Discord.</li>
+            <li>Your <strong>Discord User ID</strong></li>
+            <li>Your <strong>Discord username</strong> and optional avatar</li>
+            <li>Guild (server) IDs where Dredbot operates</li>
           </ul>
-        </div>
-        <div class="policy-section" id="why">
-          <h4>2. Why We Collect It</h4>
+
+          <h3>Session IDs</h3>
+          <p>Each login or password recovery request generates a random, anonymous <strong>sessionId</strong>. This sessionId helps us verify your current session securely without collecting personally identifiable information like IP addresses or device details.</p>
+
+          <h3>Temporary IP Data (Security Only)</h3>
+          <p>For additional protection, your IP address is temporarily logged when you perform security-sensitive actions such as a login or “forgot password” request. This data is used <strong>only for verification and abuse prevention</strong> and is automatically cleared after a short period (usually within 48 hours). You can request deletion at any time.</p>
+        </section>
+
+        <section class="policy-section" id="purpose">
+          <h2>3. Why We Collect This Data</h2>
           <ul>
-            <li>To verify your identity.</li>
+            <li>To verify your identity and secure your Dredbot account</li>
+            <li>To notify your Discord account of login attempts or suspicious activity</li>
+            <li>To prevent unauthorized access and maintain service reliability</li>
+            <li>To provide essential features such as password recovery</li>
           </ul>
-        </div>
-        <div class="policy-section" id="verification">
-          <h4>3. Discord Verification</h4>
-          <p>When a new IP logs in, we notify your Discord account for manual approval.</p>
-        </div>
-        <div class="policy-section" id="retention">
-          <h4>4. Data Retention</h4>
-          <p>We retain only data necessary for functionality and security. You may request deletion at any time.</p>
-        </div>
-        <div class="policy-section" id="third">
-          <h4>5. Third Parties</h4>
-          <p>We use <a href="https://discord.com" target="_blank">Discord</a> for login. See their <a href="https://discord.com/privacy" target="_blank">privacy policy</a>.</p>
-        </div>
-        <div class="policy-section" id="security">
-          <h4>6. Data Security</h4>
-          <p>We take the protection of your data seriously. All sensitive information is encrypted in transit and at rest. We do not share, sell, or leak your data. Access is strictly limited to what is required to provide and secure the Dredbot service.</p>
-        </div>
-        <div class="policy-section" id="children">
-          <h4>7. Children's Privacy</h4>
-          <p>Dredbot is intended for users of Discord and games rated 13+. We do not knowingly collect personal information from children under 13 (or under 16 in the European Union). If we learn that we have inadvertently collected such information, we will delete it immediately.</p>
-        </div>
-        <div class="policy-section" id="rights">
-          <h4>8. Your Rights (GDPR and CCPA)</h4>
+        </section>
+
+        <section class="policy-section" id="discordIntegration">
+          <h2>4. Discord Integration</h2>
+          <p>Dredbot relies on <a href="https://discord.com" target="_blank" rel="noopener">Discord's API</a> for authentication. We never request unnecessary permissions or access to your messages or servers. Any information shared through Discord remains governed by the <a href="https://discord.com/privacy" target="_blank" rel="noopener">Discord Privacy Policy</a>.</p>
+        </section>
+
+        <section class="policy-section" id="cookies">
+          <h2>5. Cookies & Sessions</h2>
+          <p>We use secure session cookies solely to maintain your login state. These cookies:</p>
           <ul>
-            <li>The right to access the data we hold about you.</li>
-            <li>The right to correct inaccurate data.</li>
-            <li>The right to request deletion of your data.</li>
-            <li>The right to object to certain data processing.</li>
+            <li>Keep you securely signed in</li>
+            <li>Expire automatically when you log out or close your browser</li>
+            <li>Do not track browsing or collect analytics</li>
+          </ul>
+        </section>
+
+        <section class="policy-section" id="thirdParties">
+          <h2>6. Third-Party Services</h2>
+          <p>Dredbot uses <a href="https://discord.com" target="_blank" rel="noopener">Discord</a> for identity verification. No other third-party analytics, ad trackers, or marketing tools are used. We do not sell, share, or rent user data to any external services.</p>
+        </section>
+
+        <section class="policy-section" id="retention">
+          <h2>7. Data Retention</h2>
+          <p>Session data and temporary IP logs are stored only as long as necessary for security purposes. Regular user data (e.g., Discord ID) is retained only while your Dredbot account is active. You can request deletion of all stored information at any time by contacting us on Discord.</p>
+        </section>
+
+        <section class="policy-section" id="security">
+          <h2>8. Data Security</h2>
+          <p>All communications with Dredbot use HTTPS encryption. Sensitive data, including session tokens, are securely stored and hashed where applicable. Access is restricted to authorized system processes only.</p>
+        </section>
+
+        <section class="policy-section" id="rights">
+          <h2>9. Your Rights</h2>
+          <p>Depending on your region, you may have rights under data protection laws such as the GDPR or CCPA, including:</p>
+          <ul>
+            <li>The right to request a copy of your stored data</li>
+            <li>The right to correct or update your information</li>
+            <li>The right to request deletion of your data</li>
+            <li>The right to object to data processing for non-essential purposes</li>
           </ul>
           <p>To exercise these rights, please contact us via Discord: <strong>pshsayhi4117</strong>.</p>
-        </div>
-        <div class="policy-section" id="cookies">
-          <h4>9. Cookies</h4>
-          <p>We use cookies only to support login and session management. These cookies help keep you signed in automatically and maintain your account security. They do not track your browsing activity outside of Dredbot, and we do not use cookies for advertising or analytics purposes.</p>
-        </div>
-        <div class="policy-section" id="changes">
-          <h4>10. Changes to This Policy</h4>
-          <p>We may update this Privacy Policy from time to time. If we make significant changes, we will update the "Effective Date" at the top of this page. Continued use of the service after updates means you accept the revised Privacy Policy.</p>
-        </div>
-        <div class="policy-section" id="contact">
-          <h4>11. Contact</h4>
-          <p>Contact us via Discord for any data or privacy-related requests: <strong>pshsayhi4117</strong> or our <a href="https://discord.gg/yz7zsWBzQU" target="_blank">Discord Server</a>.</p>
-        </div>
+        </section>
+
+        <section class="policy-section" id="children">
+          <h2>10. Children's Privacy</h2>
+          <p>Dredbot is intended for Discord users aged 13 and older. We do not knowingly collect personal data from children under 13 (or under 16 in the EU). If we learn that such data has been collected, it will be promptly deleted.</p>
+        </section>
+
+        <section class="policy-section" id="changes">
+          <h2>11. Policy Updates</h2>
+          <p>We may occasionally update this Privacy Policy to reflect service changes or legal requirements. When updates occur, we'll revise the “Effective Date” above. Continued use of Dredbot after updates means you accept the revised terms.</p>
+        </section>
+
+        <section class="policy-section" id="contact">
+          <h2>12. Contact</h2>
+          <p>If you have privacy questions or data requests, contact us via Discord: <strong>pshsayhi4117</strong> or through our <a href="https://discord.gg/yz7zsWBzQU" target="_blank">Discord Server</a>.</p>
+        </section>
+
       </div>
-      <div class="col-lg-3 d-none d-lg-block">
-        <div class="toc bg-white p-3 rounded shadow-sm">
-          <h6 class="text-uppercase fw-bold mb-3">On this page</h6>
-          <nav class="nav flex-column small">
-            <a class="nav-link py-1" href="#intro">Intro</a>
-            <a class="nav-link py-1" href="#collect">1. What We Collect</a>
-            <a class="nav-link py-1" href="#why">2. Why We Collect It</a>
-            <a class="nav-link py-1" href="#verification">3. Discord Verification</a>
-            <a class="nav-link py-1" href="#retention">4. Data Retention</a>
-            <a class="nav-link py-1" href="#third">5. Third Parties</a>
-            <a class="nav-link py-1" href="#security">6. Data Security</a>
-            <a class="nav-link py-1" href="#children">7. Children's Privacy</a>
-            <a class="nav-link py-1" href="#rights">8. Your Rights</a>
-            <a class="nav-link py-1" href="#cookies">9. Cookies</a>
-            <a class="nav-link py-1" href="#changes">10. Changes</a>
-            <a class="nav-link py-1" href="#contact">11. Contact</a>
-          </nav>
-        </div>
-      </div>
+
+      <aside class="toc d-none d-lg-block">
+        <h6>On this page</h6>
+        <nav>
+          <a href="#overview">1. Overview</a>
+          <a href="#dataWeCollect">2. Information We Collect</a>
+          <a href="#purpose">3. Why We Collect</a>
+          <a href="#discordIntegration">4. Discord Integration</a>
+          <a href="#cookies">5. Cookies & Sessions</a>
+          <a href="#thirdParties">6. Third-Party Services</a>
+          <a href="#retention">7. Data Retention</a>
+          <a href="#security">8. Data Security</a>
+          <a href="#rights">9. Your Rights</a>
+          <a href="#children">10. Children's Privacy</a>
+          <a href="#changes">11. Policy Updates</a>
+          <a href="#contact">12. Contact</a>
+        </nav>
+      </aside>
     </div>
   </main>
-  <footer class="bg-dark text-light text-center py-4 mt-auto">
+
+  <button class="btn btn-primary rounded-circle back-to-top" id="backToTop" title="Back to top">↑</button>
+
+  <footer>
     <div class="container">
       <small>&copy; 2025 Dredbot. All rights reserved.</small>
     </div>
   </footer>
+
   <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const backToTop = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 400) backToTop.style.display = "block";
+      else backToTop.style.display = "none";
+    });
+    backToTop.addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
+  </script>
 </body>
 </html>

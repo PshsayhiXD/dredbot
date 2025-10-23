@@ -6,24 +6,98 @@
   <title>Terms of Service - Dredbot</title>
   <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
   <style>
-    .terms-section {
-      padding: 2rem;
-      border-left: 4px solid #198754;
-      background: #fff;
-      border-radius: .5rem;
-      box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.05);
-      margin-bottom: 2rem;
+    body {
+      background: #f8fafc;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #212529;
+      scroll-behavior: smooth;
     }
-    h1, h4 { font-weight: 600; }
-    footer small { opacity: 0.7; }
+    .navbar {
+      background: linear-gradient(90deg, #0d6efd, #0a58ca);
+    }
+    header {
+      background: linear-gradient(115deg, #0d6efd, #4b8bff);
+      color: #fff;
+      padding: 5rem 0 4rem;
+      text-align: center;
+    }
+    header h1 {
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .main-content {
+      flex: 1 1 65%;
+      min-width: 300px;
+    }
     .toc {
+      flex: 1 1 25%;
+      max-width: 300px;
       position: sticky;
       top: 6rem;
+      align-self: start;
+      background: #fff;
+      border-radius: .75rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      height: fit-content;
+    }
+    .toc h6 {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: #0d6efd;
+      margin-bottom: 1rem;
+    }
+    .toc a {
+      text-decoration: none;
+      color: #212529;
+      display: block;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .toc a:hover {
+      color: #0d6efd;
+    }
+    .terms-section {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 16px rgba(13,110,253,0.05);
+      border-left: 4px solid #0d6efd;
+    }
+    .terms-section h4 {
+      font-weight: 600;
+      color: #0d6efd;
+      margin-bottom: 1rem;
+    }
+    footer {
+      background: #0d6efd;
+      color: #fff;
+      font-size: 0.9rem;
+      padding: 2rem 0;
+      text-align: center;
+    }
+    footer small {
+      opacity: 0.85;
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: none;
+      z-index: 50;
     }
   </style>
 </head>
-<body class="bg-light d-flex flex-column min-vh-100">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+<body class="d-flex flex-column min-vh-100">
+  <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
     <div class="container">
       <a class="navbar-brand fw-bold" href="/">Dredbot</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -37,58 +111,109 @@
       </div>
     </div>
   </nav>
-  <header class="bg-success text-light py-5 mb-4">
-    <div class="container text-center">
-      <h1 class="display-5">Terms of Service</h1>
-      <p class="lead mb-0">Effective Date: July 13, 2025</p>
+
+  <header>
+    <div class="container">
+      <h1 class="display-6 mb-3">Terms of Service</h1>
+      <p class="mb-0">Effective Date: July 13, 2025</p>
     </div>
   </header>
-  <main class="container mb-5">
-    <div class="row">
-      <div class="col-lg-9">
-        <div class="terms-section" id="intro">
-          <p>Welcome to <strong>Dredbot</strong>! By using this website and its services, you agree to the following terms:</p>
-        </div>
-        <div class="terms-section" id="account">
-          <h4>1. Account and Login</h4>
-          <p>We use Discord to authenticate users. We store your Discord user ID and may record your device info and IP. If a login is detected from a new device, you will be notified via Discord for approval.</p>
-        </div>
-        <div class="terms-section" id="use">
+
+  <main class="container my-5 flex-grow-1">
+    <div class="content">
+      <div class="main-content">
+
+        <section class="terms-section" id="intro">
+          <p>Welcome to <strong>Dredbot</strong>! By using our platform, you agree to these Terms of Service. If you do not agree, please stop using Dredbot immediately.</p>
+        </section>
+
+        <section class="terms-section" id="account">
+          <h4>1. Account and Authentication</h4>
+          <p>Dredbot uses Discord for authentication. When you log in via Discord, we store your Discord ID and assign a session ID to verify your identity. This helps protect your account from unauthorized access.</p>
+          <p>If you initiate a login or password reset, your session ID may be recorded for security tracking. You may request deletion of this data anytime through Discord.</p>
+        </section>
+
+        <section class="terms-section" id="use">
           <h4>2. Acceptable Use</h4>
           <ul>
-            <li>Do not attempt to access other users' accounts.</li>
-            <li>Do not abuse or overload the system.</li>
-            <li>Do not reverse-engineer or tamper with the service.</li>
+            <li>Do not violate Discord’s Terms of Service or applicable laws.</li>
+            <li>Do not attempt unauthorized access to any accounts or systems.</li>
+            <li>Do not overload, disrupt, or reverse-engineer any part of Dredbot.</li>
           </ul>
-        </div>
-        <div class="terms-section" id="changes">
-          <h4>3. Changes</h4>
-          <p>We may update these terms. Continued use means you agree to the updated terms.</p>
-        </div>
-        <div class="terms-section" id="contact">
-          <h4>4. Contact</h4>
-          <p>Contact us via Discord: <strong>pshsayhi4117</strong> or our <a href="https://discord.gg/yz7zsWBzQU" target="_blank">Discord Server</a>.</p>
-        </div>
+        </section>
+
+        <section class="terms-section" id="verification">
+          <h4>3. Verification and Security</h4>
+          <p>When a new session ID is detected, we may notify your Discord account for manual approval. This helps ensure that logins originate from legitimate users only.</p>
+        </section>
+
+        <section class="terms-section" id="data">
+          <h4>4. Data Handling</h4>
+          <p>We store only minimal data required for account operation and verification. Dredbot does not sell or share user data. Stored data includes your Discord ID and temporary session IDs for login security.</p>
+          <p>You may request complete deletion of your data via Discord contact.</p>
+        </section>
+
+        <section class="terms-section" id="service">
+          <h4>5. Service Availability</h4>
+          <p>Dredbot is provided “as is” and “as available.” While we strive for continuous uptime, we cannot guarantee uninterrupted access due to maintenance or external issues.</p>
+        </section>
+
+        <section class="terms-section" id="liability">
+          <h4>6. Limitation of Liability</h4>
+          <p>We are not liable for any loss, damage, or data issues arising from the use of Dredbot. You assume full responsibility for how you use the service.</p>
+        </section>
+
+        <section class="terms-section" id="changes">
+          <h4>7. Changes to These Terms</h4>
+          <p>We may revise these Terms occasionally. Updates will be announced via this page, and the “Effective Date” will reflect the most recent version. Continued use means you agree to the new Terms.</p>
+        </section>
+
+        <section class="terms-section" id="termination">
+          <h4>8. Termination</h4>
+          <p>We may suspend or terminate access if you violate these Terms. You may also end your use at any time by disconnecting your Discord account.</p>
+        </section>
+
+        <section class="terms-section" id="contact">
+          <h4>9. Contact</h4>
+          <p>For any data or account inquiries, reach us via Discord: <strong>pshsayhi4117</strong> or join our <a href="https://discord.gg/yz7zsWBzQU" target="_blank">Discord Server</a>.</p>
+        </section>
+
       </div>
-      <div class="col-lg-3 d-none d-lg-block">
-        <div class="toc bg-white p-3 rounded shadow-sm">
-          <h6 class="text-uppercase fw-bold mb-3">On this page</h6>
-          <nav class="nav flex-column small">
-            <a class="nav-link py-1" href="#intro">Intro</a>
-            <a class="nav-link py-1" href="#account">1. Account and Login</a>
-            <a class="nav-link py-1" href="#use">2. Acceptable Use</a>
-            <a class="nav-link py-1" href="#changes">3. Changes</a>
-            <a class="nav-link py-1" href="#contact">4. Contact</a>
-          </nav>
-        </div>
-      </div>
+
+      <aside class="toc d-none d-lg-block">
+        <h6>On this page</h6>
+        <nav>
+          <a href="#intro">Intro</a>
+          <a href="#account">1. Account and Authentication</a>
+          <a href="#use">2. Acceptable Use</a>
+          <a href="#verification">3. Verification and Security</a>
+          <a href="#data">4. Data Handling</a>
+          <a href="#service">5. Service Availability</a>
+          <a href="#liability">6. Limitation of Liability</a>
+          <a href="#changes">7. Changes</a>
+          <a href="#termination">8. Termination</a>
+          <a href="#contact">9. Contact</a>
+        </nav>
+      </aside>
     </div>
   </main>
-  <footer class="bg-dark text-light text-center py-4 mt-auto">
+
+  <button class="btn btn-primary rounded-circle back-to-top" id="backToTop" title="Back to top">↑</button>
+
+  <footer>
     <div class="container">
       <small>&copy; 2025 Dredbot. All rights reserved.</small>
     </div>
   </footer>
+
   <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const backToTop = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 400) backToTop.style.display = "block";
+      else backToTop.style.display = "none";
+    });
+    backToTop.addEventListener("click", () => window.scrollTo({top: 0, behavior: "smooth"}));
+  </script>
 </body>
 </html>
