@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import dns from 'dns';
 import os from 'os';
+import { exec } from "child_process";
 import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config({ path: '../../.env' });
@@ -137,10 +138,6 @@ dns.lookup = function (hostname, options, callback) {
 
 let cooldowns = {};
 let schedule;
-const ONE_DAY = 1000 * 60 * 60 * 24;
-const ONE_WEEK = ONE_DAY * 7;
-const ONE_MONTH = ONE_DAY * 30;
-const ONE_YEAR = ONE_DAY * 365;
 
 export const selfWrap = (func) => {
   return function (...args) {
@@ -258,6 +255,15 @@ export const gambleRandomNumber = selfWrap(async function gambleRandomNumber(min
   const result = min + fraction * range;
   return result * multiplier;
 });
+export const isWifiConnected = async () => {
+  const start = performance.now();
+  return new Promise(r => {
+    dns.lookup("google.com", err => {
+      const ms = Math.round(performance.now() - start);
+      r({ connected: !err, latency: !err ? ms + " ms" : null });
+    });
+  });
+};
 
 export const key = selfWrap(async function key() {
   ({ ...process.env });
@@ -815,7 +821,7 @@ export const Schedule = selfWrap(async function Schedule() {
     const response = await fetch('https://drednot.io/pvp-events', {
       headers: { Accept: 'application/json' },
     });
-    if (!response.ok) throwError('Network response was not ok ' + response.statusText);
+    if (!response.ok) throwError(this.name, `Network response was not ok ${response.statusText}`);
     const body = await response.text();
     const scriptTag = body.match(/<script[^>]*>(.*?)<\/script>/g).find(script => script.includes('SCHEDULE='));
     schedule = JSON.parse(
@@ -825,7 +831,7 @@ export const Schedule = selfWrap(async function Schedule() {
         .replace('SCHEDULE=', '')
     );
   } catch (error) {
-    throwError('[Schedule] Error fetching schedule:', error.message);
+    throwError(this.name, `Error fetching schedule: ${error.stack || error.message || error}`);
   }
 });
 Schedule();
@@ -860,26 +866,26 @@ export const pvpEvent = selfWrap(async function pvpEvent(type) {
 });
 
 export const newTab = selfWrap(async function newTab(shipId) {
-  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
-  if (data.includes(shipId)) throwError(`Ship "${shipId}" already exists.`);
+  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
+  if (data.includes(shipId)) throwError(this.name, `Ship "${shipId}" already exists.`);
   data.push(shipId);
   await writeData(paths.database.active_ship, data);
 });
 export const removeTab = selfWrap(async function removeTab(shipId) {
-  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
+  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
   const index = data.indexOf(shipId);
-  if (index === -1) throwError(`Ship "${shipId}" does not exist.`);
+  if (index === -1) throwError(this.name, `Ship "${shipId}" does not exist.`);
   data.splice(index, 1);
   await writeData(paths.database.active_ship, data);
 });
 export const findTab = selfWrap(async function findTab(shipId) {
-  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
+  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
   return data.includes(shipId);
 });
 export const fetchShipList = selfWrap(async function fetchShipList() {
@@ -6412,6 +6418,7 @@ export const helper = {
   decryptAccount, //(payload, keyHex)
   randomNumber, //(min = 0, max = 1)
   gambleRandomNumber, //(min = 0, max = 1, multiplier = 1)
+  isWifiConnected, //()
   key, //()
   errorMsg, //(func, reason, code = 0o0, rest = {})
   throwError, //(func, msg)

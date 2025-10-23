@@ -4,6 +4,8 @@ import log from './utils/logger.js';
 import { helper } from './utils/helper.js';
 import config from './config.js';
 import * as createRoute from './routes/internal/index.js';
+if (!(await helper.isWifiConnected()).connected) throw new Error("[localhost.js] No WiFi connection.");
+log(`[localhost.js] Wifi connected, Good.`);
 const allRoutes = [],
   mounted = new Map(),
   m = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'all'];
