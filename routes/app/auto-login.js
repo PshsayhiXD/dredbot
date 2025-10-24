@@ -1,8 +1,9 @@
 import express from "express";
 import paths from "./../../utils/path.js";
+import rateLimit from "../../utils/ratelimit.js";
 export default ({ loadDataByAccountCookie, readText, log, helper }) => {
   const Router = express.Router();
-  Router.post("/auto-login", async (req, res) => {
+  Router.post("/auto-login", rateLimit, async (req, res) => {
     try {
       const authToken = req.cookies["d_sess"];
       if (!authToken) return res.status(401).send("[401] No auth token provided.");

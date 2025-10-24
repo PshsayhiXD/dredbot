@@ -4,11 +4,11 @@ import paths from "../../utils/path.js";
 import dotenv from "dotenv";
 import crypto from "crypto";
 dotenv.config({ path: paths.env });
-import * as UAParser from "ua-parser-js";
+import rateLimit from "../../utils/ratelimit.js";
 export default ({ log, saveData, loadDataByAccountId, loadUsernameByAccountId, helper, readText }) => {
   const Router = express.Router();
 
-  Router.get("/discord-auth", async (req, res) => {
+  Router.get("/discord-auth", rateLimit, async (req, res) => {
     try {
       const code = req.query.code;
       if (!code) return res.status(400).send("[400] No code provided.");
