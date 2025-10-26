@@ -66,7 +66,7 @@ export const version = async () => {
       totalWeight += weight;
     }
   }
-  if (!changed.length) return "No significant code changes.";
+  if (!changed.length) return `(${bump})\nVersion: v${data.major}.${data.minor}.${data.patch}.\nUpdated: ${data.lastUpdate}.`;
   const bump = totalWeight >= 5 ? "major" : totalWeight >= 3 ? "minor" : "patch";
   data[bump]++;
   if (bump === "major") data.minor = data.patch = 0;
@@ -74,5 +74,5 @@ export const version = async () => {
   data.hashes = newHashes;
   data.lastUpdate = new Date().toISOString();
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
-  return `(${bump})\nVersion: v${data.major}.${data.minor}.${data.patch}\nChanged: ${changed.join(", ")}\nUpdated: ${data.lastUpdate}`;
+  return `(${bump})\nVersion: v${data.major}.${data.minor}.${data.patch}.\nChanged: ${changed.join(", ")}.\nUpdated: ${data.lastUpdate}.`;
 };
