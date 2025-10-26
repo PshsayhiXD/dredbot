@@ -15,7 +15,7 @@ const loadLanguage = async (lang = 'en') => {
 
 // t(key:string) → string
 // ex: t("Welcome")
-const t = key => translations[key] || key;
+const t = (key) => translations[key] || key;
 
 // refreshTranslations() → void
 // ex: refreshTranslations()
@@ -137,10 +137,11 @@ const isFalsy = (value) => !value;
 
 // el(tag:string, cls?:string, html?:string) → HTMLElement
 // ex: el("div","text-muted","Hello")
-const el = (tag, cls = '', html = '') => {
+const el = (tag, cls = '', html = '', id) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (html) e.innerHTML = html;
+  if (id) e.id = id;
   return e;
 };
 
@@ -586,38 +587,36 @@ const styleText = (text, { rules = [], color = null, weight = null, italic = fal
   return span;
 };
 
-// sidebarNav(items:{label:string,content:()=>Node|Promise<Node>}[]) → HTMLDivElement
-// ex: sidebarNav([{label:"Home",content:()=>el("div","","Home")}])
+// sidebarNav(items: {label: string, content: () => Node | Promise<Node>, onHover?: (link: HTMLAnchorElement) => void, onLeave?: (link: HTMLAnchorElement) => void}[]): HTMLDivElement
+// ex: sidebarNav([{label:"Home",content:()=>el("div","","Home"),onHover:()=>console.log("hover"),onLeave:()=>console.log("leave")}])
 const sidebarNav = (items) => {
-  const wrap = el('div', 'd-flex');
-  const side = el('div', 'd-flex flex-column p-3 bg-white soft-card me-3');
-  side.style.width = '220px';
-  const content = el('div', 'flex-grow-1 position-relative');
+  const wrap = el("div", "d-flex align-items-stretch");
+  const side = el("div", "d-flex flex-column p-3 bg-white soft-card me-3");
+  const content = el("div", "flex-grow-1 position-relative");
+  wrap.style.minHeight = "100vh";
+  side.style.width = "220px";
   const tabs = [];
   items.forEach((it, i) => {
-    const tab = el('div', 'tab-pane');
-    tab.style.display = i === 0 ? 'block' : 'none';
+    const tab = el("div", "tab-pane");
+    tab.style.display = i === 0 ? "block" : "none";
     const c = it.content();
-    if (c instanceof Promise)
-      c.then(node => {
-        if (node) tab.appendChild(node);
-      });
-    else {
-      if (c) tab.appendChild(c);
-    }
+    if (c instanceof Promise) c.then(node => node && tab.appendChild(node));
+    else if (c) tab.appendChild(c);
     tabs.push(tab);
     content.appendChild(tab);
-    const link = el('a', 'nav-link mb-2 fw-semibold', t(it.label));
-    link.setAttribute('data-i18n', it.label);
-    link.href = '#';
-    if (i === 0) link.classList.add('active');
+    const link = el("a", "nav-link mb-2 fw-semibold", t(it.label));
+    link.setAttribute("data-i18n", it.label);
+    link.href = "#";
+    if (i === 0) link.classList.add("active");
     link.onclick = e => {
       e.preventDefault();
-      side.querySelectorAll('a').forEach(a => a.classList.remove('active'));
-      link.classList.add('active');
-      tabs.forEach((t, j) => (t.style.display = j === i ? 'block' : 'none'));
-      animateCards();
+      side.querySelectorAll("a").forEach(a => a.classList.remove("active"));
+      link.classList.add("active");
+      tabs.forEach((t, j) => (t.style.display = j === i ? "block" : "none"));
+      animate(".soft-card");
     };
+    if (it.onHover) link.onmouseenter = () => it.onHover(link);
+    if (it.onLeave) link.onmouseleave = () => it.onLeave(link);
     side.appendChild(link);
   });
   wrap.appendChild(side);
@@ -744,130 +743,144 @@ const fieldCardCollapsibleSections = (title, sections, opts={collapsIf1:{bool:fa
 };
 
 
+const main = () => {
+  // ---------------- Dashboard ----------------
+  const dash = document.getElementById('dashboard');
+  const dashHeader = header('Dredbot Admin Dashboard');
+  dash.appendChild(dashHeader);
 
-// ---------------- Dashboard ----------------
-const dash = document.getElementById('dashboard');
-const dashHeader = header("Dredbot Admin Dashboard");
-dash.appendChild(dashHeader);
-
-const hamburgerBtn = el("button", "btn btn-light btn-sm");
-hamburgerBtn.type = "button";
-hamburgerBtn.textContent = "☰";
-hamburgerBtn.style.fontSize = "18px";
-hamburgerBtn.style.padding = "4px 8px";
-hamburgerBtn.style.cursor = "pointer";
-const langMenu = dropdown([
-  { label: "EN", onClick: () => alert("EN selected") },
-  { label: "FR", onClick: () => alert("FR selected") },
-  { label: "ES", onClick: () => alert("ES selected") }
-], hamburgerBtn);
-langMenu.style.display = "none";
-langMenu.style.position = "absolute";
-langMenu.style.minWidth = "80px";
-langMenu.style.zIndex = "2";
-document.body.appendChild(langMenu);
-hamburgerBtn.onclick = e => {
-  e.stopPropagation();
-  if (langMenu.style.display === "none") {
-    const rect = hamburgerBtn.getBoundingClientRect();
-    langMenu.style.top = rect.bottom + "px";
-    langMenu.style.left = rect.left + "px";
-    langMenu.style.display = "block";
-  } else {
+  const hamburgerBtn = el('button', 'btn btn-light btn-sm', '☰');
+  hamburgerBtn.type = 'button';
+  hamburgerBtn.style.fontSize = '18px';
+  hamburgerBtn.style.padding = '4px 8px';
+  hamburgerBtn.style.cursor = 'pointer';
+  const langMenu = dropdown(
+    [
+      { label: 'EN', onClick: () => (hamburgerBtn.textContent = '☰') },
+      { label: 'FR', onClick: () => (hamburgerBtn.textContent = '☰') },
+      { label: 'ES', onClick: () => (hamburgerBtn.textContent = '☰') },
+    ],
+    hamburgerBtn,
+    "dropdown-menu show langMenu"
+  );
+  langMenu.style.display = 'none';
+  langMenu.style.position = 'absolute';
+  langMenu.style.minWidth = '80px';
+  langMenu.style.zIndex = '2';
+  document.body.appendChild(langMenu);
+  hamburgerBtn.onclick = e => {
+    animate('#langMenu');
+    e.stopPropagation();
+    if (langMenu.style.display === 'none') {
+      const rect = hamburgerBtn.getBoundingClientRect();
+      langMenu.style.top = rect.bottom + 'px';
+      langMenu.style.left = rect.left + 'px';
+      langMenu.style.display = 'block';
+      hamburgerBtn.textContent = '⇩';
+    } else {
+      hamburgerBtn.textContent = '☰';
+      langMenu.style.display = 'none';
+    }
+  };
+  const langWrapper = el('div', 'ms-auto');
+  langWrapper.appendChild(hamburgerBtn);
+  dashHeader.appendChild(langWrapper);
+  document.addEventListener("click", () => {
     langMenu.style.display = "none";
-  }
-};
-const langWrapper = el("div", "ms-auto");
-langWrapper.appendChild(hamburgerBtn);
-dashHeader.appendChild(langWrapper);
-
-dash.appendChild(
-  sidebarNav([
-    {
-      label: "Overview",
-      content: async () => {
-        const res = await fetch("/get-profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ formatNumber: true }),
-        });
-        const data = await res.json();
-        if (!data.success) return el("div", "text-danger", "Failed to load profile.");
-        const profile = data.profile;
-        return row(
-          fieldCardCollapsibleSections("User Profile", [
-            ["Account",
-              [["General", [
-                ["Username", addCopyIcon(profile.username)],
-                ["User ID", addCopyIcon(profile.userId || "N/A")],
-                ["Banned", pillText(profile.banned ? "Yes" : "No", profile.banned ? "danger" : "success")],
-              ]]]
-            ],
-            ["Statistics",
-              [["Usage", [
-                ["Dredcoin Balance", addCopyIcon(profile.balance)],
-                ["Commands Executed", profile.command_execute || 0],
-                ["Daily Streak", `${profile.dailyStreak} (next: ${profile.next_streaks.daily}, expire: ${profile.expire_streaks.daily})`],
-                ["Weekly Streak", `${profile.weeklyStreak} (next: ${profile.next_streaks.weekly}, expire: ${profile.expire_streaks.weekly})`],
-                ["Monthly Streak", `${profile.monthlyStreak} (next: ${profile.next_streaks.monthly}, expire: ${profile.expire_streaks.monthly})`],
-                ["Yearly Streak", `${profile.yearlyStreak} (next: ${profile.next_streaks.yearly}, expire: ${profile.expire_streaks.yearly})`],
-              ]]]
-            ],
-          ]),
-          ...(profile.inventory && profile.inventory.length >= 1
-            ? [fieldCardCollapsibleSections("Inventory",
-                Object.entries(profile.inventory).map(([key, item]) => [
-                  item.name || key,
-                  [[
-                    "Details",
+    hamburgerBtn.textContent = '☰';
+  });
+  dash.appendChild(
+    sidebarNav([
+      {
+        label: 'Overview',
+        content: async () => {
+          const res = await fetch('/get-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ formatNumber: true }),
+          });
+          const data = await res.json();
+          if (!data.success) return el('div', 'text-danger', 'Failed to load profile.');
+          const profile = data.profile;
+          return row(
+            fieldCardCollapsibleSections('User Profile', [
+              ['Account',
+                [['General',
                     [
-                      ["Name", item.name || "—"],
-                      ["Description", item.description || "—"],
-                      ["Rarity", item.rarity ? pillText(item.rarity, getRarityStyle(item.rarity).color) : "—"],
-                      ["Enchanted", pillText(item.enchanted ? "Yes" : "No", item.enchanted ? "success" : "secondary")],
-                      ["Enchants", Array.isArray(item.enchants) && item.enchants.length
-                        ? pillText(item.enchants.map(e => e.name || "—").join(", "), getRarityStyle(item.enchants[0].rarity).color)
-                        : pillText("—", "secondary")
+                      ['Username', addCopyIcon(profile.username)],
+                      ['User ID', addCopyIcon(profile.userId || 'N/A')],
+                      ['Banned', pillText(profile.banned ? 'Yes' : 'No', profile.banned ? 'danger' : 'success')],
+                    ],
+                  ],
+                ],
+              ],
+              ['Statistics',
+                [['Usage',
+                    [
+                      ['Dredcoin Balance', addCopyIcon(profile.balance)],
+                      ['Commands Executed', profile.command_execute || 0],
+                      ['Daily Streak', `${profile.dailyStreak} (next: ${profile.next_streaks.daily}, expire: ${profile.expire_streaks.daily})`],
+                      ['Weekly Streak', `${profile.weeklyStreak} (next: ${profile.next_streaks.weekly}, expire: ${profile.expire_streaks.weekly})`],
+                      ['Monthly Streak', `${profile.monthlyStreak} (next: ${profile.next_streaks.monthly}, expire: ${profile.expire_streaks.monthly})`],
+                      ['Yearly Streak', `${profile.yearlyStreak} (next: ${profile.next_streaks.yearly}, expire: ${profile.expire_streaks.yearly})`],
+                    ],
+                  ],
+                ],
+              ],
+            ]),
+            ...(profile.inventory && profile.inventory.length >= 1
+              ? [
+                  fieldCardCollapsibleSections(
+                    'Inventory',
+                    Object.entries(profile.inventory).map(([key, item]) => [
+                      item.name || key,
+                      [['Details',
+                          [
+                            ['Name', item.name || '—'],
+                            ['Description', item.description || '—'],
+                            ['Rarity', item.rarity ? pillText(item.rarity, getRarityStyle(item.rarity).color) : '—'],
+                            ['Enchanted', pillText(item.enchanted ? 'Yes' : 'No', item.enchanted ? 'success' : 'secondary')],
+                            ['Enchants', Array.isArray(item.enchants) && item.enchants.length ? pillText(item.enchants.map(e => e.name || '—').join(', '), getRarityStyle(item.enchants[0].rarity).color) : pillText('—', 'secondary')],
+                            ['Icon', item.icon ? item.icon : '—'],
+                          ],
+                        ],
                       ],
-                      ["Icon", item.icon ? item.icon : "—"]
-                    ]
-                  ]]
-                ])
-              )]
-            : []
-          )
-        );
+                    ])
+                  ),
+                ]
+              : [])
+          );
+        },
       },
-    },
-    {
-      label: "Users",
-      content: () => {
-        const cols = ["ID","Name","Role"];
-        const data = [
-          [1,"Alice","Admin"],
-          [2,"Bob","User"],
-          [3,"Charlie","Editor"]
-        ];
-        return tableWithPagination("User List", cols, data, 5);
+      {
+        label: 'Users',
+        content: () => {
+          const cols = ['ID', 'Name', 'Role'];
+          const data = [
+            [1, 'Alice', 'Admin'],
+            [2, 'Bob', 'User'],
+            [3, 'Charlie', 'Editor'],
+          ];
+          return tableWithPagination('User List', cols, data, 5);
+        },
       },
-    },
-  ])
-);
-
-
+    ])
+  );
+};
 
 // ---------------- Animation ----------------
-// animateCards() → void
-const animateCards = () => {
-  document.querySelectorAll('.soft-card').forEach((c, i) => setTimeout(() => c.classList.add('show'), 100 * i));
+// animate(query:`.classname`|`#id`|`tagname`): void
+const animate = (query) => {
+  document.querySelectorAll(query).forEach((c, i) => setTimeout(() => c.classList.add('show'), 100 * i));
 };
 
 
 
 // ---------------- Init ---------------
 window.addEventListener('load', () => {
-  document.addEventListener("click", () => langMenu.style.display = "none");
-  animateCards();
+  main();
+  animate('.soft-card');
+  animate('.langMenu');
   loadLanguage('en');
 });
