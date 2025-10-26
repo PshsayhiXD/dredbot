@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import dns from 'dns';
 import os from 'os';
-import { exec } from "child_process";
 import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config({ path: '../../.env' });
@@ -14,7 +13,6 @@ import chalkLib from 'chalk';
 import * as cheerio from 'cheerio';
 import { createCanvas, loadImage } from 'canvas';
 import { DateTime } from "luxon";
-import argon2 from 'argon2';
 
 import paths from './path.js';
 import config from '../config.js';
@@ -139,6 +137,10 @@ dns.lookup = function (hostname, options, callback) {
 
 let cooldowns = {};
 let schedule;
+const ONE_DAY = 1000 * 60 * 60 * 24;
+const ONE_WEEK = ONE_DAY * 7;
+const ONE_MONTH = ONE_DAY * 30;
+const ONE_YEAR = ONE_DAY * 365;
 
 export const selfWrap = (func) => {
   return function (...args) {
@@ -146,72 +148,97 @@ export const selfWrap = (func) => {
   };
 };
 
-export const hashPassword = selfWrap(async function hasPassword(password) {
-  const salt = crypto.randomBytes(16);
-  const hash = await argon2.hash(password, {
-    type: argon2.argon2id,
-    salt,
-    memoryCost: 19456,
-    timeCost: 2,
-    parallelism: 1,
-  });
-  return hash;
-});
-export const verifyPassword = selfWrap(async function verifyPassword(password, hash) {
-  const ok = await argon2.verify(hash, password);
-  return ok;
-});
-export const genPassword = async () => {
-  const specials = "!@#$%^&*";
-  const bytes = crypto.randomBytes(12);
-  const base = bytes.toString("base64").replace(/[^a-zA-Z0-9]/g, "");
-  const s = specials[Math.floor(Math.random() * specials.length)];
-  const plain = base.slice(0, 10) + s + Math.floor(Math.random() * 90 + 10);
-  const salt = crypto.randomBytes(16);
-  const hash = await argon2.hash(plain, {
-    type: argon2.argon2id,
-    salt,
-    memoryCost: 19456,
-    timeCost: 2,
-    parallelism: 1
-  });
-  return { password: plain, hash };
-};
+export const encryptAccount = selfWrap(async function encryptAccount(account) {
+  const mk = crypto.randomBytes(32);
+  const p1 = mk.slice(0, 16);
+  const p2 = mk.slice(16, 24);
+  const p3 = mk.slice(24, 32);
 
-export const makeKeyPair = selfWrap(async function makeKeyPair() {
-  const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
-    modulusLength: 4096,
-    publicKeyEncoding: { type: "spki", format: "pem" },
-    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  const e1iv = crypto.randomBytes(12);
+  const e1c = crypto.createCipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(p2)).digest(), e1iv);
+  const e1d = Buffer.concat([e1c.update(p1), e1c.final()]);
+  const e1t = e1c.getAuthTag();
+
+  const e2iv = crypto.randomBytes(12);
+  const e2c = crypto.createCipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(p3)).digest(), e2iv);
+  const e2d = Buffer.concat([e2c.update(p2), e2c.final()]);
+  const e2t = e2c.getAuthTag();
+
+  const e3iv = crypto.randomBytes(12);
+  const e3c = crypto.createCipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(p1)).digest(), e3iv);
+  const e3d = Buffer.concat([e3c.update(p3), e3c.final()]);
+  const e3t = e3c.getAuthTag();
+
+  const aiv = crypto.randomBytes(12);
+  const ac = crypto.createCipheriv('aes-256-gcm', mk, aiv);
+  const aj = JSON.stringify(account);
+  const ad = Buffer.concat([ac.update(aj, 'utf8'), ac.final()]);
+  const at = ac.getAuthTag();
+  const metaA = Buffer.concat([e1iv, e1d, e1t, crypto.randomBytes(5)]).toString('hex');
+  const metaB = Buffer.concat([crypto.randomBytes(3), e2iv, e2d, e2t, crypto.randomBytes(2)]).toString('hex');
+  const ivField = Buffer.concat([aiv, e3iv, e3d, e3t, crypto.randomBytes(4)]).toString('hex');
+  const map = JSON.stringify({
+    a: [0, 12, 12, 12 + e1d.length, 12 + e1d.length, 12 + e1d.length + 16],
+    b: [3, 15, 15, 15 + e2d.length, 15 + e2d.length, 15 + e2d.length + 16],
+    i: [12, 24, 24, 24 + e3d.length, 24 + e3d.length, 24 + e3d.length + 16],
   });
-  return { pub: publicKey, priv: privateKey };
+  const mk2 = crypto.randomBytes(32);
+  const miv = crypto.randomBytes(12);
+  const mc = crypto.createCipheriv('aes-256-gcm', mk2, miv);
+  const md = Buffer.concat([mc.update(map), mc.final()]);
+  const mt = mc.getAuthTag();
+  const tagField = Buffer.concat([at, miv, mk2, mt]).toString('hex');
+
+  return successMsg(`randomNumber`, '', 0o0, { iv: ivField, dta: ad.toString('hex'), tag: tagField, metaA, metaB, map: md.toString('hex') });
 });
-export const encryptAccount = selfWrap(async function encryptAccount(user, data, pub) {
-  if (!(await isValidUser(user))) return null;
-  const b64u = (b) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const payload = JSON.stringify({ id, data });
-  const sym = crypto.randomBytes(32);
-  const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv("aes-256-gcm", sym, iv);
-  const ct = Buffer.concat([c.update(payload, "utf8"), c.final()]);
-  const tag = c.getAuthTag();
-  const encSym = crypto.publicEncrypt({ key: pub, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" }, sym);
-  return { token: [b64u(encSym), b64u(iv), b64u(ct), b64u(tag)].join(".") };
-});
-export const decryptAccount = selfWrap(async function decryptAccount(user, token, priv) {
-  const ub64 = (s) => Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
-  try {
-    const [es, iv, ct, tg] = token.split(".").map(ub64);
-    const sym = crypto.privateDecrypt({ key: priv, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" }, es);
-    const d = crypto.createDecipheriv("aes-256-gcm", sym, iv);
-    d.setAuthTag(tg);
-    const payload = Buffer.concat([d.update(ct), d.final()]).toString("utf8");
-    const obj = JSON.parse(payload);
-    if (obj.user !== user) return errorMsg(this.name, "user mismatched.");
-    return successMsg(this.name, "", 0o0, { data: obj.data });
-  } catch {
-    return errorMsg(this.name, "invalid or tampered token.");
-  }
+export const decryptAccount = selfWrap(async function decryptAccount(payload) {
+  const { iv, data, tag, metaA, metaB, map } = typeof payload === 'string' ? JSON.parse(payload) : payload;
+  const ivb = Buffer.from(iv, 'hex');
+  const tb = Buffer.from(tag, 'hex');
+  const mA = Buffer.from(metaA, 'hex');
+  const mB = Buffer.from(metaB, 'hex');
+  const mapData = Buffer.from(map, 'hex');
+
+  const at = tb.slice(0, 16);
+  const miv = tb.slice(16, 28);
+  const mk2 = tb.slice(28, 60);
+  const mt = tb.slice(60, 76);
+  const md = mapData;
+
+  const mdc = crypto.createDecipheriv('aes-256-gcm', mk2, miv);
+  mdc.setAuthTag(mt);
+  const mp = JSON.parse(Buffer.concat([mdc.update(md), mdc.final()]).toString('utf8'));
+
+  const g1 = mA.slice(mp.a[0], mp.a[1]);
+  const e1d = mA.slice(mp.a[2], mp.a[3]);
+  const e1t = mA.slice(mp.a[4], mp.a[5]);
+
+  const g2 = mB.slice(mp.b[0], mp.b[1]);
+  const e2d = mB.slice(mp.b[2], mp.b[3]);
+  const e2t = mB.slice(mp.b[4], mp.b[5]);
+
+  const g3 = ivb.slice(mp.i[0], mp.i[1]);
+  const e3d = ivb.slice(mp.i[2], mp.i[3]);
+  const e3t = ivb.slice(mp.i[4], mp.i[5]);
+
+  const d1c = crypto.createDecipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(g2)).digest(), g1);
+  d1c.setAuthTag(e1t);
+  const p1 = Buffer.concat([d1c.update(e1d), d1c.final()]);
+
+  const d2c = crypto.createDecipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(g3)).digest(), g2);
+  d2c.setAuthTag(e2t);
+  const p2 = Buffer.concat([d2c.update(e2d), d2c.final()]);
+
+  const d3c = crypto.createDecipheriv('aes-256-gcm', crypto.createHash('sha256').update(Buffer.concat(p1)).digest(), g3);
+  d3c.setAuthTag(e3t);
+  const p3 = Buffer.concat([d3c.update(e3d), d3c.final()]);
+
+  const mk = Buffer.concat([p1, p2, p3]);
+  const aiv = ivb.slice(0, 12);
+  const adc = crypto.createDecipheriv('aes-256-gcm', mk, aiv);
+  adc.setAuthTag(at);
+  const dec = Buffer.concat([adc.update(Buffer.from(data, 'hex')), adc.final()]);
+  return JSON.parse(dec.toString('utf8'));
 });
 
 export const randomNumber = selfWrap(async function randomNumber(min = 0, max = 1) {
@@ -231,15 +258,6 @@ export const gambleRandomNumber = selfWrap(async function gambleRandomNumber(min
   const result = min + fraction * range;
   return result * multiplier;
 });
-export const isWifiConnected = async () => {
-  const start = performance.now();
-  return new Promise(r => {
-    dns.lookup("google.com", err => {
-      const ms = Math.round(performance.now() - start);
-      r({ connected: !err, latency: !err ? ms + " ms" : null });
-    });
-  });
-};
 
 export const key = selfWrap(async function key() {
   ({ ...process.env });
@@ -797,7 +815,7 @@ export const Schedule = selfWrap(async function Schedule() {
     const response = await fetch('https://drednot.io/pvp-events', {
       headers: { Accept: 'application/json' },
     });
-    if (!response.ok) throwError(this.name, `Network response was not ok ${response.statusText}`);
+    if (!response.ok) throwError('Network response was not ok ' + response.statusText);
     const body = await response.text();
     const scriptTag = body.match(/<script[^>]*>(.*?)<\/script>/g).find(script => script.includes('SCHEDULE='));
     schedule = JSON.parse(
@@ -807,7 +825,7 @@ export const Schedule = selfWrap(async function Schedule() {
         .replace('SCHEDULE=', '')
     );
   } catch (error) {
-    throwError(this.name, `Error fetching schedule: ${error.stack || error.message || error}`);
+    throwError('[Schedule] Error fetching schedule:', error.message);
   }
 });
 Schedule();
@@ -842,26 +860,26 @@ export const pvpEvent = selfWrap(async function pvpEvent(type) {
 });
 
 export const newTab = selfWrap(async function newTab(shipId) {
-  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
-  if (data.includes(shipId)) throwError(this.name, `Ship "${shipId}" already exists.`);
+  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
+  if (data.includes(shipId)) throwError(`Ship "${shipId}" already exists.`);
   data.push(shipId);
   await writeData(paths.database.active_ship, data);
 });
 export const removeTab = selfWrap(async function removeTab(shipId) {
-  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
+  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
   const index = data.indexOf(shipId);
-  if (index === -1) throwError(this.name, `Ship "${shipId}" does not exist.`);
+  if (index === -1) throwError(`Ship "${shipId}" does not exist.`);
   data.splice(index, 1);
   await writeData(paths.database.active_ship, data);
 });
 export const findTab = selfWrap(async function findTab(shipId) {
-  if (!shipId) throwError(this.name, `unexpected shipId "${shipId}".`);
+  if (!shipId) throwError(`${this.name}`, `unexpected shipId "${shipId}".`);
   const data = await readData(paths.database.active_ship);
-  if (!Array.isArray(data)) throwError(this.name, 'active_ship data is not an array!');
+  if (!Array.isArray(data)) throwError('active_ship data is not an array!');
   return data.includes(shipId);
 });
 export const fetchShipList = selfWrap(async function fetchShipList() {
@@ -1373,10 +1391,7 @@ export const initUserObject = selfWrap(async function initUserObject(user) {
 
   const account = ensure(data, "account");
   setDefault(account, "status", "N-Logged-in");
-  setDefault(account, "pendingLogin", {});
-  setDefault(account, "securityLogs", []);
-  setDefault(account, "blockedIP", []);
-  setDefault(account, "password", account.password && account.password.startsWith("$argon2") ? account.password : (await hashPassword(account.password || (await genPassword()).password)));
+  setDefault(account, "pendingLogin", {})
 
   const streak = ensure(data, "streak");
   const daily = ensure(streak, "daily");
@@ -5027,11 +5042,11 @@ export const cleanOldResearchImages = selfWrap(async function cleanOldResearchIm
       const age = now - stat.mtimeMs;
       if (age > maxAgeMs) {
         await fs.unlink(fullPath);
-        log(`[-] ${this.name}: Deleted ${file}`);
+        log(`[-] cleanOldResearchImages: Deleted ${file}`);
       }
     }
   } catch (err) {
-    log(`[-] ${this.name}: ${err}.`);
+    log(`[-] cleanOldResearchImages: ${err}.`);
   }
 });
 
@@ -6393,15 +6408,10 @@ export const helper = {
 
   // --- ULTILS FUNCTIONS ---
   selfWrap, //(func)
-  hashPassword, //(password)
-  verifyPassword, //(password, hash)
-  genPassword, //()
-  makeKeyPair, //()
-  encryptAccount, //(user, data, pub)
-  decryptAccount, //(user, token, priv)
+  encryptAccount, //(account)
+  decryptAccount, //(payload, keyHex)
   randomNumber, //(min = 0, max = 1)
   gambleRandomNumber, //(min = 0, max = 1, multiplier = 1)
-  isWifiConnected, //()
   key, //()
   errorMsg, //(func, reason, code = 0o0, rest = {})
   throwError, //(func, msg)
