@@ -1,11 +1,10 @@
 import express from "express";
 import crypto from "crypto";
+import dotenv from "dotenv";
 import paths from "./../../utils/path.js";
-import { pathToFileURL } from "url";
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-
-const module = await import(pathToFileURL(paths.utils.ratelimit).href);
-const ratelimit = module.default;
+dotenv.config({ path: paths.env });
+import ratelimit from "../../utils/ratelimit.js";
 
 export default ({ loadData, saveData, loadAllData, readText, log, helper }, bot) => {
   const Router = express.Router();
@@ -20,18 +19,31 @@ export default ({ loadData, saveData, loadAllData, readText, log, helper }, bot)
       params.append("response", token);
       const verifyRes = await fetch(verifyUrl, { method: "POST", body: params });
       const result = await verifyRes.json();
-      if (!result.success || (result.score !== undefined && result.score < 0.5))
-        return res.status(403).json({ success: false, message: "[403] Failed reCAPTCHA." });
+      if (!result.success || (result.score !== undefined && result.score < 0.5)) return res.status(403).json({ success: false, message: "[403] Failed reCAPTCHA." });
       const data = await loadData(username);
       const account = data?.account;
-      if (!account || account.password !== password)
-        return res.status(401).json({ success: false, message: "[401] Login failed." });
-      account.blockedIP ??= [];
-      if (account.blockedIP.includes(ipv4))
-        return res.status(403).json({ success: false, message: "[403] IP blocked." });
+      if (!account) return res.status(401).json({ success: false, message: "[401] Login failed." });
+      let valid = false;
+      try {
+        valid = await helper.verifyPassword(password, account.password);
+      } catch {
+        const oldPass = account.password === password;
+        if (oldPass) {
+          account.password = await helper.hashPassword(password);
+          await saveData(username, data);
+          valid = true;
+        }
+      }
+      if (!valid) return res.status(401).json({ success: false, message: "[401] Login failed." });
+      const sessionId = crypto.randomBytes(16).toString("hex");
       const authToken = crypto.randomBytes(32).toString("hex");
+      account.blockedIP ??= [];
+      if (account.blockedIP.includes(ipv4)) return res.status(403).json({ success: false, message: "[403] IP blocked." });
       account.pendingLogin ??= {};
-      account.pendingLogin[authToken] = { ipv4, timestamp: Date.now(), approved: false };
+      account.pendingLogin[authToken] = { ipv4, sessionId, timestamp: Date.now(), approved: false };
+      account.securityLogs ??= [];
+      account.securityLogs.push({ ipv4, action: "login", ts: Date.now() });
+      account.securityLogs = account.securityLogs.filter(e => Date.now() - e.ts < 48 * 60 * 60 * 1000);
       data.account = account;
       await saveData(username, data);
       const embed = new EmbedBuilder()
@@ -48,13 +60,19 @@ export default ({ loadData, saveData, loadAllData, readText, log, helper }, bot)
       if (Object.values(account.pendingLogin || {}).some(p => p.ipv4 === ipv4 && !p.approved)) return res.status(200).json({ success: true, message: "[200] Login already pending approval." });
       const discordUser = await bot.users.fetch(account.id);
       if (discordUser) await discordUser.send({ embeds: [embed], components: [row] });
+      res.cookie("session_id", sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
       const html = `
       <html>
       <head><title>Login Pending Approval</title></head>
       <body>
         <h1>Login Pending Approval</h1>
         <p>Check your Discord DM to approve the login.</p>
-        <p>Please Enable DMS if message did not arrived.</p>
+        <p>Please enable DMs if message did not arrive.</p>
         <script>
           const a = "${authToken}";
           async function c() {
@@ -81,7 +99,7 @@ export default ({ loadData, saveData, loadAllData, readText, log, helper }, bot)
       const allUsers = await loadAllData();
       for (const user of allUsers) {
         const acc = user.account;
-        if (!acc) return;
+        if (!acc) continue;
         if (acc.pendingLogin?.[token]?.approved) return res.json({ approved: true });
       }
       return res.json({ approved: false });
@@ -94,7 +112,7 @@ export default ({ loadData, saveData, loadAllData, readText, log, helper }, bot)
   Router.get("/login/final/:token", async (req, res) => {
     try {
       const token = req.params.token;
-      const allUsers = await loadAllUsers();
+      const allUsers = await loadAllData();
       let targetUser, account;
       for (const user of allUsers) {
         if (!user.account) continue;

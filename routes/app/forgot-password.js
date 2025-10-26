@@ -4,7 +4,7 @@ import paths from '../../utils/path.js';
 export default ({ loadData, log }, bot) => {
   const Router = express.Router();
   Router.get('/forgot-password', (req, res) => {
-    res.sendFile(paths.public['forgot-password']);
+    res.sendFile(paths.public.forgotpass);
   });
   Router.post('/forgot-password', async (req, res) => {
     try {
