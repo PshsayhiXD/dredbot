@@ -33,10 +33,9 @@ export const version = async () => {
     { obj: paths.public, weight: 1 },
     { obj: paths.config, weight: 2 },
     { obj: paths.version, weight: 2 },
-    { obj: paths.ui, weight: 1 },
     { obj: paths.wss, weight: 2 },
     { obj: paths.localhost, weight: 1 },
-    { obj: paths.language, weight: 1 },
+    { obj: paths.public.language, weight: 1 },
   ];
   let data;
   try {
@@ -66,13 +65,33 @@ export const version = async () => {
       totalWeight += weight;
     }
   }
-  if (!changed.length) return `(${bump})\nVersion: v${data.major}.${data.minor}.${data.patch}.\nUpdated: ${data.lastUpdate}.`;
+  if (!changed.length) {
+    return [
+      `Version Information:`,
+      `Current Version: v${data.major}.${data.minor}.${data.patch}.`,
+      `Last Update: ${data.lastUpdate}.`
+    ].join("\n");
+  }
   const bump = totalWeight >= 5 ? "major" : totalWeight >= 3 ? "minor" : "patch";
-  data[bump]++;
-  if (bump === "major") data.minor = data.patch = 0;
-  else if (bump === "minor") data.patch = 0;
+  const previousVersion = `v${data.major}.${data.minor}.${data.patch}`;
+  if (bump === "major") data.major++, data.minor = 0, data.patch = 0;
+  else if (bump === "minor") data.minor++, data.patch = 0;
+  else data.patch++;
   data.hashes = newHashes;
   data.lastUpdate = new Date().toISOString();
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
-  return `(${bump})\nVersion: v${data.major}.${data.minor}.${data.patch}.\nChanged: ${changed.join(", ")}.\nUpdated: ${data.lastUpdate}.`;
+  const folderHashes = Object.entries(newHashes)
+    .map(([k,h]) => `  ${k}: ${h.slice(0,6)}`)
+    .join("\n");
+  const hashSnippet = changed.map(f => newHashes[f].slice(0,3)).join("");
+  const version = `v${data.major}_${data.minor}_${data.patch}_${bump}_${hashSnippet}_${new Date().toISOString().slice(0,10).replace(/-/g,"")}`;
+  return [
+    `Version Updated!`,
+    `Previous Version: ${previousVersion}.`,
+    `Type: ${bump}.`,
+    `New Version: ${version}.`,
+    `Changed Folders: ${changed.join(", ")}.`,
+    `Folder Hash Summary:\n${folderHashes}.`,
+    `Updated Timestamp: ${data.lastUpdate}.`
+  ].join("\n");
 };
