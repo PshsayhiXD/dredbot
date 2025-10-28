@@ -65,7 +65,7 @@ await (async function() {
     log('\n[bot.js] Available Routes:', "title");
     if (!allRoutes.length) return log('  (no routes found)');
     allRoutes.forEach(r => {
-      log(`  [${r.method}] ${r.path} → ${baseURL}${r.path}`);
+      log(`  [${r.method}] ${r.path} → ${baseURL}${r.path}`, 'info');
     });
   };
   
