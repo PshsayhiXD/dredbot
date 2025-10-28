@@ -168,7 +168,7 @@ const handleInteractionCreate = (bot) => {
       }
 
       // Logins
-      if (interaction.isButton() || interaction.customId.startsWith("approveLogin-") || interaction.customId.startsWith("denyLogin-") || interaction.customId.startsWith("blockIP-")) {
+      if (interaction.isButton() && interaction.customId.startsWith("approveLogin-") || interaction.customId.startsWith("denyLogin-") || interaction.customId.startsWith("blockIP-")) {
         const [action, username, tokenOrIp] = interaction.customId.split("-");
         try {
           const data = await helper.loadData(username);
