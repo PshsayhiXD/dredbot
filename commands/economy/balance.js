@@ -40,11 +40,11 @@ export default {
             ],
             onSubmit: async (mi) => {
               const b = await dep.getBankBalance(user);
-              const { err, amount } = await dep.parseBet(mi.fields.getTextInputValue(`${command}_deposit_amount_${user}`), b);
-              if (err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
-              if (isNaN(amount) || amount <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
-              await dep.depositDredcoin(user, amount);
-              return mi.reply({ content: `✅ Deposited **\`${amount}${dep.config.CURRENCY_SYMBOL}\`**.`, ephemeral: true });
+              const parsed = await dep.parseBet(mi.fields.getTextInputValue(`${command}_deposit_amount_${user}`), b);
+              if (parsed.err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
+              if (isNaN(parsed) || parsed.bet <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
+              await dep.depositDredcoin(user, parsed);
+              return mi.reply({ content: `✅ Deposited **\`${parsed}${dep.config.CURRENCY_SYMBOL}\`**.`, ephemeral: true });
             }
           });
           await i.showModal(modal);
@@ -65,11 +65,11 @@ export default {
             ],
             onSubmit: async (mi) => {
               const w = await dep.getDredcoin(user);
-              const { err, amount } = await dep.parseBet(mi.fields.getTextInputValue(`${command}_withdraw_amount_${user}`), w);
-              if (err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
-              if (isNaN(amount) || amount <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
-              await dep.withdrawDredcoin(user, amount);
-              return mi.reply({ content: `✅ Withdrew **\`${amount}${dep.config.CURRENCY_SYMBOL}\`**.`, ephemeral: true });
+              const parsed = await dep.parseBet(mi.fields.getTextInputValue(`${command}_withdraw_amount_${user}`), w);
+              if (parsed.err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
+              if (isNaN(parsed) || parsed.bet <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
+              await dep.withdrawDredcoin(user, parsed);
+              return mi.reply({ content: `✅ Withdrew **\`${parsed}${dep.config.CURRENCY_SYMBOL}\`**.`, ephemeral: true });
             }
           });
           await i.showModal(modal);
@@ -92,11 +92,11 @@ export default {
             onSubmit: async (mi) => {
               const w = await dep.getDredcoin(user);
               const recipient = mi.fields.getTextInputValue(`${command}_giveto_user_${user}`);
-              const { err, amount } = await dep.parseBet(mi.fields.getTextInputValue(`${command}_giveto_amount_${user}`), w);
-              if (err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
-              if (isNaN(amount) || amount <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
-              await dep.transferDredcoin(user, recipient, amount);
-              return mi.reply({ content: `✅ You gave **\`${amount}${dep.config.CURRENCY_SYMBOL}\`** to **\`${recipient}\`**.`, ephemeral: true });
+              const parsed = await dep.parseBet(mi.fields.getTextInputValue(`${command}_giveto_amount_${user}`), w);
+              if (parsed.err) return mi.reply({ content: `❌ Error ${err}`, ephemeral: true });
+              if (isNaN(parsed) || parsed.bet <= 0) return mi.reply({ content: "❌ Invalid amount.", ephemeral: true });
+              await dep.transferDredcoin(user, recipient, parsed);
+              return mi.reply({ content: `✅ You gave **\`${parsed}${dep.config.CURRENCY_SYMBOL}\`** to **\`${recipient}\`**.`, ephemeral: true });
             }
           });
           await i.showModal(modal);

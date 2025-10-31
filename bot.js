@@ -32,23 +32,19 @@ import { helper } from './utils/helper.js';
 import paths from './utils/path.js';
 import * as db from './utils/db.js';
 import { rescheduleAll } from './utils/deleteScheduler.js';
-process.on('unhandledRejection', (err) => {
+process.on('unhandledRejection', err => {
   console.error('Unhandled Rejection:', err);
 });
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
   console.error('Uncaught Exception:', err);
 });
-await (async function() {
-  const allRoutes = [], mounted = new Map(), m = ['get','post','put','delete','patch','options','head','all'];
+await (async function () {
+  const allRoutes = [],
+    mounted = new Map(),
+    m = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'all'];
   const originalUse = express.application.use;
   express.application.use = function (...args) {
-    if (
-      typeof args[0] === 'string' &&
-      args[1] &&
-      typeof args[1] === 'function' &&
-      args[1].stack &&
-      Array.isArray(args[1].stack)
-    ) mounted.set(args[1], args[0]);
+    if (typeof args[0] === 'string' && args[1] && typeof args[1] === 'function' && args[1].stack && Array.isArray(args[1].stack)) mounted.set(args[1], args[0]);
     return originalUse.apply(this, args);
   };
   m.forEach(method => {
@@ -62,30 +58,25 @@ await (async function() {
     };
   });
   const logAllRoutes = (baseURL = '') => {
-    log('\n[bot.js] Available Routes:', "title");
+    log('\n[bot.js] Available Routes:', 'title');
     if (!allRoutes.length) return log('  (no routes found)');
     allRoutes.forEach(r => {
       log(`  [${r.method}] ${r.path} → ${baseURL}${r.path}`, 'info');
     });
   };
-  
+
   const localIP = await helper.getLocalIP();
   const option = {
     key: await helper.readText(paths.certs.key),
     cert: await helper.readText(paths.certs.cert),
-    passphrase: "Dredbotontop"
+    passphrase: 'Dredbotontop',
   };
   const bot = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-    ],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
     partials: ['CHANNEL'],
     makeCache: Options.cacheWithLimits({
-      MessageManager: 100
-    })
+      MessageManager: 100,
+    }),
   });
   const app = express();
   const messageCache = new Map();
@@ -101,7 +92,7 @@ await (async function() {
   await createRoute.default(app, { ...db, log, helper }, bot);
   logAllRoutes(`https://${localIP}:${config.HTTPS_PORT}`);
   const server = https.createServer(option, app);
-  
+
   bot.on('clientReady', async () => {
     setInterval(() => helper.cleanOldResearchImages(), config.CLEAN_RESEARCH_TREE_MS);
     await helper.clearGetFileContentFiles();
@@ -131,12 +122,12 @@ await (async function() {
     log({ dupedIdCommands: dupedIdCommand });
     setInterval(() => helper.refundExpiredListings(), config.MARKETPLACE_TICKRATE);
   });
-  bot.on('messageCreate', async (message) => {
+  bot.on('messageCreate', async message => {
     if (message.author.bot) return;
     messageCache.set(message.id, {
       content: message.content,
       author: message.author.tag,
-      timestamp: message.createdTimestamp
+      timestamp: message.createdTimestamp,
     });
     if (message.channel.id !== config.BotcommandChannelID && message.channel.id !== config.AdminCommandChannelID) return;
     if (!message.content.startsWith(config.PREFIX)) return;
@@ -165,7 +156,28 @@ await (async function() {
       return message.reply({ embeds: [embed] });
     }
     if (!commands || !commands.execute) return;
-    const suggestion = [...bot.commands.values()].flatMap(c => [c.name, ...(c.aliases||[])]).sort((a,b)=>{const d=(x,y)=>{const c=[];for(let i=0;i<=x.length;i++){let l=i;for(let j=0;j<=y.length;j++){if(i===0)c[j]=j;else if(j>0){let n=c[j-1];if(x[i-1]!==y[j-1])n=Math.min(Math.min(n,l),c[j])+1;c[j-1]=l;l=n;}}if(i>0)c[y.length]=l;}return c[y.length];};return ((b.length-d(b,command))/b.length)-((a.length-d(a,command))/a.length);})[0];
+    const suggestion = [...bot.commands.values()]
+      .flatMap(c => [c.name, ...(c.aliases || [])])
+      .sort((a, b) => {
+        const d = (x, y) => {
+          const c = [];
+          for (let i = 0; i <= x.length; i++) {
+            let l = i;
+            for (let j = 0; j <= y.length; j++) {
+              if (i === 0) c[j] = j;
+              else if (j > 0) {
+                let n = c[j - 1];
+                if (x[i - 1] !== y[j - 1]) n = Math.min(Math.min(n, l), c[j]) + 1;
+                c[j - 1] = l;
+                l = n;
+              }
+            }
+            if (i > 0) c[y.length] = l;
+          }
+          return c[y.length];
+        };
+        return (b.length - d(b, command)) / b.length - (a.length - d(a, command)) / a.length;
+      })[0];
     if (suggestion && !commands) {
       const embed = await commandUsage.commandEmbed({
         title: `❌ Command not found`,
@@ -173,30 +185,44 @@ await (async function() {
         color: '#FF0000',
         user: username,
         reward: false,
-        message
+        message,
       });
       return message.reply({ embeds: [embed] });
     }
     const dependencies = await helper.resolveDependencies(commands.dependencies);
-    const timeLeft = (ms) => {return helper.formatTime(ms)};
+    const timeLeft = ms => {
+      return helper.formatTime(ms);
+    };
     const missingPerm = await commandUsage.checkMissingPermission(username, command, bot, helper.Permission);
     const missingArgs = commandUsage.checkMissingArgs(command, bot, { args, attachments: message.attachments.toJSON() });
     let cooldownResult = null;
     let globalCooldownResult = null;
-    try { cooldownResult = await helper.Cooldown(username, command);
+    try {
+      cooldownResult = await helper.Cooldown(username, command);
       if (!cooldownResult) await helper.newCooldown(username, command, commands.cooldown);
       else {
         const embed = await commandUsage.commandEmbed({ title: `⏳ Cooldown`, description: `You must wait **${timeLeft(cooldownResult.remaining)}** before using \`${config.PREFIX}${command}\` again.`, user: username, reward: false, message });
         return message.reply({ embeds: [embed] });
       }
-    } catch (err) { await helper.newCooldown(username, command, commands.cooldown) }
-    try { globalCooldownResult = await helper.GlobalCooldown(username, command);
+    } catch (err) {
+      await helper.newCooldown(username, command, commands.cooldown);
+    }
+    try {
+      globalCooldownResult = await helper.GlobalCooldown(username, command);
       if (!globalCooldownResult) await helper.newGlobalCooldown(username, command, commands.globalCooldown);
       else {
-        const embed = await commandUsage.commandEmbed({ title: `⏳ Global Cooldown`, description: `You have recently used this command. Please wait **${timeLeft(globalCooldownResult.remaining)}** before using \`${config.PREFIX}${command}\` again.`, user: username, reward: false, message });
+        const embed = await commandUsage.commandEmbed({
+          title: `⏳ Global Cooldown`,
+          description: `You have recently used this command. Please wait **${timeLeft(globalCooldownResult.remaining)}** before using \`${config.PREFIX}${command}\` again.`,
+          user: username,
+          reward: false,
+          message,
+        });
         return message.reply({ embeds: [embed] });
       }
-    } catch (err) { await helper.newGlobalCooldown(username, command, commands.globalCooldown) }
+    } catch (err) {
+      await helper.newGlobalCooldown(username, command, commands.globalCooldown);
+    }
     if (missingPerm) {
       const embed = await commandUsage.commandEmbed({ title: `❌ Permission Denied`, description: missingPerm, user: username, reward: false, message });
       return message.reply({ embeds: [embed] });
@@ -212,35 +238,38 @@ await (async function() {
         const res = await originalReply(...replyArgs);
         try {
           const rerunBtn = commandUsage.commandReRunButton(bot, message, command, args);
-          if (rerunBtn) await res.edit({ components: [{ type: 1, components: [rerunBtn] }] });
+          if (rerunBtn) {
+            const existingComponents = res.components || [];
+            existingComponents.push({ type: 1, components: [rerunBtn] });
+            await res.edit({ components: existingComponents });
+          }
         } catch (e) {
-          log(`[message.reply.monkeypatch] ${e.stack}`, "error");
+          log(`[message.reply.monkeypatch] ${e.stack}`, 'error');
         }
         return res;
       };
-      try { await commands.execute(message, args, username, originalCommand, dependencies); }
-      finally { message.reply = originalReply; }
+      try {
+        await commands.execute(message, args, username, originalCommand, dependencies);
+      } finally {
+        message.reply = originalReply;
+      }
     } catch (error) {
       log(`[-] Error executing ${command}: ${error.stack}`, 'error');
-      const parse = async (amount) => await helper.parseBet(amount, 0);
-      const refund = (commands.category === 'gambling' || commands.category === 'economy') &&
-        typeof args[0] === 'string' ? (await parse(args[0])).bet || 0 : 0;
+      const parse = async amount => await helper.parseBet(amount, 0);
+      const refund = (commands.category === 'gambling' || commands.category === 'economy') && typeof args[0] === 'string' ? (await parse(args[0])).bet || 0 : 0;
       log(`[-] refunded ${username} ${refund}.`);
       await helper.addDredcoin(username, refund);
       await message.reply({
         content:
-          `❌ **Error while executing \`${command}\`:**\n` +
-          `\`\`\`${error.message}\`\`\`\n` +
-          `> Please report this to a developer.\n` +
-          (refund > 0 ? `💸 You have been refunded **\`${await helper.formatAmount(refund)}${config.CURRENCY_SYMBOL}\`**.` : "")
+          `❌ **Error while executing \`${command}\`:**\n` + `\`\`\`${error.message}\`\`\`\n` + `> Please report this to a developer.\n` + (refund > 0 ? `💸 You have been refunded **\`${await helper.formatAmount(refund)}${config.CURRENCY_SYMBOL}\`**.` : ''),
       });
     }
   });
-  bot.on("messageUpdate", async (_old, msg) => {
+  bot.on('messageUpdate', async (_old, msg) => {
     if (msg.partial) return;
-    bot.emit("messageCreate", msg);
+    bot.emit('messageCreate', msg);
   });
-  bot.on("messageDelete", async (msg) => {
+  bot.on('messageDelete', async msg => {
     const replyId = replyMap.get(msg.id);
     if (!replyId || !msg.channel) return;
     try {
@@ -249,10 +278,10 @@ await (async function() {
     } catch (err) {}
     replyMap.delete(msg.id);
   });
-  process.on("unhandledRejection", console.error);
-  process.on("uncaughtException", console.error);
-  bot.on("error", console.error);
-  bot.on("shardDisconnect", (event, id) => {
+  process.on('unhandledRejection', console.error);
+  process.on('uncaughtException', console.error);
+  bot.on('error', console.error);
+  bot.on('shardDisconnect', (event, id) => {
     console.warn(`[bot.js] Shard ${id} disconnected`, event);
   });
 
@@ -260,6 +289,6 @@ await (async function() {
     log(`[bot.js] Server is running on https://${localIP}:${config.HTTPS_PORT}`);
     bot.login(helper.key.DISCORD_BOT_TOKEN);
   });
-  
+
   await setupWSS(server);
 })();

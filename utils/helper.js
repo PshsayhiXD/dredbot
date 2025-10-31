@@ -294,6 +294,7 @@ export const errorMsg = selfWrap(async function errorMsg(func, reason, code = 0o
     valid: false,
     msg: `[-] ${func}: ${r}`,
     error: `[-] ${func}: ${r}`,
+    err: `[-] ${func}: ${r}`,
     code,
     ...rest,
   };
@@ -415,8 +416,8 @@ export const parseBet = selfWrap(async function parseBet(input, bal) {
     vd: 1e63,
   };
   input = input.toLowerCase().trim();
-  if (input === 'all') return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: bal });
-  if (input === 'half') return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bal / 2) });
+  if (input === 'all') return successMsg(`${this.name}`, 'parsed', 0o0, { bet: bal });
+  if (input === 'half') return successMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bal / 2) });
   input = input.replace(/(\d+(?:\.\d+)?)([a-z]+)/gi, (_, num, suf) => {
     const mul = suffixMap[suf] || 1;
     return `(${num}*${mul})`;
@@ -429,7 +430,7 @@ export const parseBet = selfWrap(async function parseBet(input, bal) {
   }
   if (typeof bet !== 'number' || isNaN(bet) || bet <= 0) return errorMsg(`${this.name}`, 'Bet must be a positive number.', 0o0, { bet: 0 });
   if (bet > bal) return errorMsg(`${this.name}`, 'Insufficient balance for this bet.', 0o0, { bet: 0 });
-  return errorMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bet) });
+  return successMsg(`${this.name}`, 'parsed', 0o0, { bet: Math.floor(bet) });
 });
 export const formatAmount = selfWrap(async function formatAmount(num, options = {}) {
   if (typeof num !== 'number' || isNaN(num)) return 'NaN';
