@@ -9,8 +9,6 @@
   <img src="https://img.shields.io/badge/Discord.js-14.22+-blue?style=for-the-badge&logo=discord" alt="Discord.js">
 </p>
 
-## 📖 Description
-
 dredbot is a comprehensive, open-source Discord bot built with Node.js, featuring a robust economy system, extensive command library, item management, clans, marketplace, gambling mechanics, and much more. It includes a full web dashboard for administration and user interaction, making it a complete Discord bot solution for communities.
 
 The bot is designed to provide an engaging gaming experience with persistent economies, social features, and administrative tools. It supports multiple languages, regional timers, automated events, and integrates with external APIs for enhanced functionality.
@@ -126,10 +124,10 @@ DISCORD_REDIRECT_URI=your_oauth_redirect_uri_here
 RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key_here
 ```
 
-Make sure to set all the values.
+Make sure to set all the variables.
 
 
-### 4. Set Up CORS Proxy (Important!)
+### 4. Set Up CORS Proxy (Optinal)
 
 Since the bot integrates with external APIs (like drednot.io), you'll need to handle CORS restrictions when running on localhost. You have several options:
 
