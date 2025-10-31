@@ -312,7 +312,7 @@ const handleInteractionCreate = (bot) => {
           );
         if (match) {
           return interaction.reply({
-            content: `🔎 Found: [${match.ourId}] **\`${match.team_name}\`** (**\`${match.player_count}\`** players, ShipID: *(*\`${match.ship_id}\`**)`,
+            content: `🔎 Found: [\`${match.ourId}\`] **\`${match.team_name}\`** (\`${match.player_count}\` players, ShipID: \`${match.ship_id}\`).`,
             ephemeral: true
           });
         } else return interaction.reply({ content: "❌ No ship found with that name or ID.", ephemeral: true });
