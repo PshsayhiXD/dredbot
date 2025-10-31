@@ -19,7 +19,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -52,10 +52,10 @@ export default {
       return dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${bet}`,
         description: end ? `${res}\n` + 
-                           `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**.\n` + 
+                           `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` + 
                            `🔥 Streak: **\`${streak}\`**.` 
                          : `🃏 Current card: **${current.v}${current.s}**.\n` + 
-                           `💰 Pot: **\`${dep.formatAmount(pot)}\`**.`,
+                           `💰 Pot: **\`${await dep.formatAmount(pot)}\`**.`,
         color: end ? '#00FF00' : '#1E90FF',
         user,
         reward: false,
@@ -69,7 +69,7 @@ export default {
       if (won || cashed) {
         const r = await dep.addDredcoin(user, pot);
         newBalance = r.newBalance;
-        res = cashed ? `🏆 You cashed out **\`${dep.formatAmount(pot)}\`**!` : `❌ You lost, but cashed last at **\`${dep.formatAmount(pot)}\`**.`;
+        res = cashed ? `🏆 You cashed out **\`${await dep.formatAmount(pot)}\`**!` : `❌ You lost, but cashed last at **\`${await dep.formatAmount(pot)}\`**.`;
       } else {
         res = '💥 Wrong guess! You lost everything.';
         newBalance = (await dep.loadData(user)).balance.dredcoin;

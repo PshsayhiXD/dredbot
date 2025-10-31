@@ -18,7 +18,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -70,16 +70,16 @@ export default {
     let outcome = { multiplier: 0, status: "", color: "#FF0000" };
     if (a === b && b === c) {
       outcome.multiplier = 3.5;
-      outcome.status = `**JACKPOT**! You won **\`${dep.formatAmount(bet*3.5)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.status = `**JACKPOT**! You won **\`${await dep.formatAmount(bet*3.5)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#FFD700";
       await dep.gambleStreak(user, streak + 1);
     } else if (a === b || b === c || a === c) {
       outcome.multiplier = 2;
-      outcome.status = `Nice **Two match**! You won **\`${dep.formatAmount(bet*2)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.status = `Nice **Two match**! You won **\`${await dep.formatAmount(bet*2)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#00FF00";
       await dep.gambleStreak(user, streak + 1);
     } else {
-      outcome.status = `**No match**! You lost **\`${dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
+      outcome.status = `**No match**! You lost **\`${await dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
       outcome.color = "#FF0000";
       await dep.gambleStreak(user, 0);
     }
@@ -96,7 +96,7 @@ export default {
       title: `${dep.config.PREFIX}${command} ${bet}`,
       description: `[ ${result[0]} / ${result[1]} / ${result[2]} ].\n` +
                    `${outcome.status}.\n` +
-                   `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**.\n` +
+                   `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` +
                    `🔥 Streak: **\`${await dep.getGambleStreak(user)}\`**.`,
       color: outcome.color,
       user,

@@ -4968,7 +4968,7 @@ export const drawResearchTree = selfWrap(async function drawResearchTree(user) {
       ctx.fillText(`Require: ${reqs}`, sx, sy - h + 6 * scale);
     }
     const cost = typeof n.cost === 'function' ? n.cost(level) : n.cost;
-    if (cost && !done && !q) (ctx.fillStyle = '#ffe100ff'), (ctx.font = `bold ${Math.round(16 * scale)}px Segoe UI`), ctx.fillText(`Cost: ${formatAmount(cost)}`, sx, sy + h + 34 * scale);
+    if (cost && !done && !q) (ctx.fillStyle = '#ffe100ff'), (ctx.font = `bold ${Math.round(16 * scale)}px Segoe UI`), ctx.fillText(`Cost: ${await formatAmount(cost)}`, sx, sy + h + 34 * scale);
     if (duration && !done && !q) (ctx.fillStyle = '#1ed1feff'), (ctx.font = `bold ${Math.round(16 * scale)}px Segoe UI`), ctx.fillText(`Duration: ${formatTime(duration)}`, sx, sy + h + 48 * scale);
     if (config.RESEARCH_SHOW_DESCRIPTION) {
       const maxWidth = 128,

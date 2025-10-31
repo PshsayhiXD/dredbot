@@ -11,8 +11,8 @@ export default ({ loadAllData, log, helper }) => {
       const user = matchedUser.username || '';
       if (!matchedUser) return res.status(404).json({ success: false, message: '[404] Failed.' });
       await helper.initUserObject(user);
-      const formatAmount = async amount => helper.formatAmount(amount);
-      const formatTime = async time => helper.formatTime(time);
+      const formatAmount = async (amount) => helper.formatAmount(amount);
+      const formatTime = async (time) => helper.formatTime(time);
       const inv = {};
       if (matchedUser.inventory) {
         for (const [itemKey, itemVal] of Object.entries(matchedUser.inventory)) {

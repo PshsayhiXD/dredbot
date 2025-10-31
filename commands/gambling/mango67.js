@@ -20,7 +20,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -96,8 +96,8 @@ export default {
           description: `**${o.text}**\n` +
                        `${o.m >= 3 ? "✨ " : ""}Growth: |${"█".repeat(length)}|.\n` +
                        `❌ Multiplier: **\`x${o.m}\`**.\n` +
-                       `💸 Won: **\`${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-                       `💰 Balance: **\`${dep.formatAmount(newBalance)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+                       `💸 Won: **\`${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+                       `💰 Balance: **\`${await dep.formatAmount(newBalance)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
                        `🔥 Streak: **\`${streak}\`**.`,
           color: amt > 0 ? "#00FF00" : "#FF0000",
           user,

@@ -19,7 +19,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -75,7 +75,7 @@ export default {
       return dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${bet}`,
         description: end ? `${res}\n` + 
-                           `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**.\n` + 
+                           `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` + 
                            `🔥 Streak: **\`${streak}\`**.` 
                          : `🎲 Current multiplier: **${currentMult}x**.\n` + 
                            `➡️ Accept or Reroll? (${rollsLeft} reroll${rollsLeft === 1 ? '' : 's'} left).`,
@@ -126,10 +126,10 @@ export default {
       const streak = await dep.getGambleStreak(user);
       const res =
         reason === 'accept'
-          ? `✅ You accepted **\`${currentMult}x\`** and got **\`${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**!`
+          ? `✅ You accepted **\`${currentMult}x\`** and got **\`${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**!`
           : reason === 'force'
-          ? `⚠️ No rerolls left. Forced to take **${currentMult}x** → **${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}**.`
-          : `⌛ Game timed out. Final multiplier: **${currentMult}x** → **${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}**.`;
+          ? `⚠️ No rerolls left. Forced to take **${currentMult}x** → **${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}**.`
+          : `⌛ Game timed out. Final multiplier: **${currentMult}x** → **${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}**.`;
       const e = await makeEmbed(true, res, amt, newBalance, streak);
       if (i) await i.update({ embeds: [e], components: [] });
       else await msg.edit({ embeds: [e], components: [] });

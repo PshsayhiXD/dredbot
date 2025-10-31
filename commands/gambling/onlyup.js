@@ -19,7 +19,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -60,10 +60,10 @@ export default {
         title: `${dep.config.PREFIX}${command} ${bet}`,
         description: end
           ? `${res}\n\n` +
-            `💰 Balance: **\`${dep.formatAmount(await (await dep.loadData(user)).balance.dredcoin)}\`**.`
+            `💰 Balance: **\`${await dep.formatAmount(await (await dep.loadData(user)).balance.dredcoin)}\`**.`
           : `⬆ Step: **${step}**\n` +
             `📈 Multiplier: **x${multiplier.toFixed(2)}**\n` +
-            `💰 Potential: **\`${dep.formatAmount(Math.floor(bet * multiplier))}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+            `💰 Potential: **\`${await dep.formatAmount(Math.floor(bet * multiplier))}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
             `⚠ Chance to fall: **\`${(fallChance * 100).toFixed(1)}%\`**.`,
         color: end ? (win ? "#00FF00" : "#FF0000") : "#1E90FF",
         user,
@@ -113,9 +113,9 @@ export default {
           const e = await dep.commandEmbed({
             title: `${dep.config.PREFIX}${command} ${bet}`,
             description: `🎉 You cashed out at **x${multiplier.toFixed(2)}**!\n` +
-                         `💰 Won: **\`${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**\n` +
+                         `💰 Won: **\`${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**\n` +
                          `🔥 Streak: **\`${streak}\`**\n` +
-                         `💰 Balance: **\`${dep.formatAmount(r.newBalance)}\`**`,
+                         `💰 Balance: **\`${await dep.formatAmount(r.newBalance)}\`**`,
             color: "#00FF00",
             user,
             reward: false,

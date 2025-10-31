@@ -18,7 +18,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -122,8 +122,8 @@ export default {
         const embed = await dep.commandEmbed({
           title: `${dep.config.PREFIX}${command} ${bet}`,
           description: `${buildGrid(finalList)}\n` +
-                       `🎉 You landed on **\`${landedPrize.name} (${landedPrize.multiplier}x)\`** and won **\`${dep.formatAmount(winAmount)}${dep.config.CURRENCY_SYMBOL}\`**!\n` +
-                       `💰 Current balance: **\`${dep.formatAmount(newBalance)}\`**.\n` +
+                       `🎉 You landed on **\`${landedPrize.name} (${landedPrize.multiplier}x)\`** and won **\`${await dep.formatAmount(winAmount)}${dep.config.CURRENCY_SYMBOL}\`**!\n` +
+                       `💰 Current balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` +
                        `🔥 Streak: **\`${finalStreak}\`**.`,
           color: "#FFD700",
           user,

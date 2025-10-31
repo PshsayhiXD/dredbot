@@ -17,8 +17,8 @@ export default {
     const bank = await dep.getBankBalance(target);
     const embed = await dep.commandEmbed({
       title: `${dep.config.PREFIX}${command}`,
-      description: `**${target}'s** Wallet: **\`${dep.formatAmount(wallet)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-                   `🏛 Bank: **\`${dep.formatAmount(bank)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+      description: `**${target}'s** Wallet: **\`${await dep.formatAmount(wallet)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+                   `🏛 Bank: **\`${await dep.formatAmount(bank)}${dep.config.CURRENCY_SYMBOL}\`**.`,
       color: "#00FF00",
       user,
       reward: false,

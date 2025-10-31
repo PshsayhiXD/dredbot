@@ -29,7 +29,7 @@ export default {
     const xp = await dep.giveExp(user, xpAmount);
     const embed = await dep.commandEmbed({
       title: `${dep.config.PREFIX}${command}`,
-      description: `🎉 You've claimed \`**${dep.formatAmount(reward)}${dep.config.CURRENCY_SYMBOL}\`** | +\`${xp.gained} (${xp.newExp}/${xp.newExpNeeded})\` Exp.\n` + 
+      description: `🎉 You've claimed \`**${await dep.formatAmount(reward)}${dep.config.CURRENCY_SYMBOL}\`** | +\`${xp.gained} (${xp.newExp}/${xp.newExpNeeded})\` Exp.\n` + 
                    `🔥 Weekly Streak: \`**${newStreak}**\`.`,
       color: "#FFD700",
       user,

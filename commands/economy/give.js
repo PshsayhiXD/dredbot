@@ -30,10 +30,10 @@ export default {
     const embed = await dep.commandEmbed({
       title: `${dep.config.PREFIX}${command}`,
       description:
-        `📩 ${user} Gave **\`${dep.formatAmount(result.sent)}${dep.config.CURRENCY_SYMBOL}\`** to **${target}**.\n` +
-        `Taxed: **\`${dep.formatAmount(result.taxed)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-        `💰 ${user} New wallet: **\`${dep.formatAmount(result.senderRemaining)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-        `💰 ${target} New wallet: **\`${dep.formatAmount(result.receiverTotal)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+        `📩 ${user} Gave **\`${await dep.formatAmount(result.sent)}${dep.config.CURRENCY_SYMBOL}\`** to **${target}**.\n` +
+        `Taxed: **\`${await dep.formatAmount(result.taxed)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+        `💰 ${user} New wallet: **\`${await dep.formatAmount(result.senderRemaining)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+        `💰 ${target} New wallet: **\`${await dep.formatAmount(result.receiverTotal)}${dep.config.CURRENCY_SYMBOL}\`**.`,
       color: "#00FF00",
       user,
       reward: false,

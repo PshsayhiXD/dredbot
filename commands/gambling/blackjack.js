@@ -17,7 +17,7 @@ export default {
     if (err || bet <= 0) {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ''}`,
-        description: `${err || '❔'}\n` + `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+        description: `${err || '❔'}\n` + `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: '#FF0000',
         user,
         reward: false,
@@ -68,8 +68,8 @@ export default {
         ? `${res}\n` + 
           `🃏 Your hand: **${handStr(pHand)}** (${score(pHand)}).\n` + 
           `🤵 Dealer: **${handStr(dHand)}** (${score(dHand)}).\n` + 
-          `💸 Won: **\`${dep.formatAmount(bet * 2)}\`**.\n` +
-          `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**.\n` + 
+          `💸 Won: **\`${await dep.formatAmount(bet * 2)}\`**.\n` +
+          `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` + 
           `🔥 Streak: **\`${streak}\`**.`
         : `🃏 Your hand: **${handStr(pHand)}** (${score(pHand)})\n` + 
           `🤵 Dealer: **${dealerTop}?**`;

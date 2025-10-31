@@ -20,9 +20,9 @@ export default {
     const embed = await dep.commandEmbed({
       title: `${dep.config.PREFIX}${command}`,
       description:
-        `✅ **Successfully withdrew \`${dep.formatAmount(result.withdrawn)}${dep.config.CURRENCY_SYMBOL}\`** (Tax **\`${result.taxed}${dep.config.CURRENCY_SYMBOL}\`**).\n` +
-        `💰 Wallet: **\`${dep.formatAmount(result.walletNow)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-        `🏛 Bank: **\`${dep.formatAmount(result.bankRemaining)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+        `✅ **Successfully withdrew \`${await dep.formatAmount(result.withdrawn)}${dep.config.CURRENCY_SYMBOL}\`** (Tax **\`${result.taxed}${dep.config.CURRENCY_SYMBOL}\`**).\n` +
+        `💰 Wallet: **\`${await dep.formatAmount(result.walletNow)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+        `🏛 Bank: **\`${await dep.formatAmount(result.bankRemaining)}${dep.config.CURRENCY_SYMBOL}\`**.`,
       color: "#00FF00",
       user,
       reward: false,

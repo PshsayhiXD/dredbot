@@ -232,7 +232,7 @@ await (async function() {
           `❌ **Error while executing \`${command}\`:**\n` +
           `\`\`\`${error.message}\`\`\`\n` +
           `> Please report this to a developer.\n` +
-          (refund > 0 ? `💸 You have been refunded **\`${helper.formatAmount(refund)}${config.CURRENCY_SYMBOL}\`**.` : "")
+          (refund > 0 ? `💸 You have been refunded **\`${await helper.formatAmount(refund)}${config.CURRENCY_SYMBOL}\`**.` : "")
       });
     }
   });

@@ -20,7 +20,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -37,18 +37,18 @@ export default {
       amt = bet * 1.5;
       const r = await dep.addDredcoin(user, amt);
       newBalance = r.newBalance;
-      res = `🎉 Coin landed on **\`${flip}\`** - You win **\`${dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      res = `🎉 Coin landed on **\`${flip}\`** - You win **\`${await dep.formatAmount(amt)}${dep.config.CURRENCY_SYMBOL}\`**!`;
     } else {
       newBalance = (await dep.loadData(user)).balance.dredcoin;
-      res = `💔 Coin landed on **\`${flip}\`** - You lost **\`${dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
+      res = `💔 Coin landed on **\`${flip}\`** - You lost **\`${await dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
     }
     await dep.gambleStreak(user, win);
     const streak = await dep.getGambleStreak(user);
     const embed = await dep.commandEmbed({
       title: `${dep.config.PREFIX}${command} ${bet} ${choice}`,
       description: `${res}\n` +
-                   `💸 Won: **\`${dep.formatAmount(bet * 1.5)}\`**.\n` +
-                   `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**.\n` +
+                   `💸 Won: **\`${await dep.formatAmount(bet * 1.5)}\`**.\n` +
+                   `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**.\n` +
                    `🔥 Streak: **\`${streak}\`**.`,
       color: win ? "#00FF00" : "#FF0000",
       user,

@@ -11,7 +11,7 @@ export default {
   dependencies: `log hasItem useItem config formatAmount
                  commandEmbed commandButtonComponent runCommand`,
   execute: async (message, args, user, command, dep) => {
-    const countArg = dep.formatAmount(args[args.length - 1]);
+    const countArg = await dep.formatAmount(args[args.length - 1]);
     const count = !isNaN(countArg) ? Math.max(1, countArg) : 1;
     const itemArg = !isNaN(countArg) ? args.slice(0, -1).join('.').toLowerCase() : args.join('.').toLowerCase();
     const useItem = async (interaction = null) => {

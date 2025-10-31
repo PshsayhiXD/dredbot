@@ -18,7 +18,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -38,27 +38,27 @@ export default {
     const maxMatch = Math.max(...Object.values(count));
     if (maxMatch === 6) {
       outcome.m = 7;
-      outcome.text = `💎 **LEGENDARY JACKPOT!** All 6 match! You won **\`${dep.formatAmount(bet * 7)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.text = `💎 **LEGENDARY JACKPOT!** All 6 match! You won **\`${await dep.formatAmount(bet * 7)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#FFD700";
       await dep.gambleStreak(user, streak + 1);
     } else if (maxMatch === 5) {
       outcome.m = 6.5;
-      outcome.text = `⚡ **Five of a kind**! You won **\`${dep.formatAmount(bet * 6.5)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.text = `⚡ **Five of a kind**! You won **\`${await dep.formatAmount(bet * 6.5)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#FFA500";
       await dep.gambleStreak(user, streak + 1);
     } else if (maxMatch === 4) {
       outcome.m = 4;
-      outcome.text = `🍀 **Four match**! You won **\`${dep.formatAmount(bet * 4)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.text = `🍀 **Four match**! You won **\`${await dep.formatAmount(bet * 4)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#00FF00";
       await dep.gambleStreak(user, streak + 1);
     } else if (maxMatch === 3) {
       outcome.m = 2;
-      outcome.text = `⭐ **Three match**! You won **\`${dep.formatAmount(bet * 2)}${dep.config.CURRENCY_SYMBOL}\`**!`;
+      outcome.text = `⭐ **Three match**! You won **\`${await dep.formatAmount(bet * 2)}${dep.config.CURRENCY_SYMBOL}\`**!`;
       outcome.color = "#00FF88";
       await dep.gambleStreak(user, streak + 1);
     } else {
       outcome.m = 0;
-      outcome.text = `💀 **No match**! You lost **\`${dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
+      outcome.text = `💀 **No match**! You lost **\`${await dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.`;
       outcome.color = "#FF0000";
       await dep.gambleStreak(user, 0);
     }
@@ -104,7 +104,7 @@ export default {
           title: `${dep.config.PREFIX}${command} ${bet}`,
           description: `[ ${reels.join(" / ")} ].\n` +
                        `${outcome.text}\n` +
-                       `💰 Balance: **\`${dep.formatAmount(newBalance)}\`**\n` +
+                       `💰 Balance: **\`${await dep.formatAmount(newBalance)}\`**\n` +
                        `🔥 Streak: **\`${finalStreak}\`**.`,
           color: outcome.color,
           user,

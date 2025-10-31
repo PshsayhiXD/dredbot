@@ -19,7 +19,7 @@ export default {
       const embed = await dep.commandEmbed({
         title: `${dep.config.PREFIX}${command} ${args[0] || ""}`,
         description: `${err || "❔"}\n` + 
-                     `💰 Balance: **\`${dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
+                     `💰 Balance: **\`${await dep.formatAmount(balance)}${dep.config.CURRENCY_SYMBOL}\`**.`,
         color: "#FF0000",
         user,
         reward: false,
@@ -59,8 +59,8 @@ export default {
               title: `${dep.config.PREFIX}${command} ${bet}`,
               description: `You guessed **\`${guess}\`**.\n` + 
                            `🎲 The dice rolled **\`${diceRoll}\`**.\n` +
-                           `✅ Correct! You won **\`${dep.formatAmount(win)}${dep.config.CURRENCY_SYMBOL}\`**!` +
-                           `💰 balance: **\`${dep.formatAmount(await dep.getDredcoin(user))}\`**`,
+                           `✅ Correct! You won **\`${await dep.formatAmount(win)}${dep.config.CURRENCY_SYMBOL}\`**!` +
+                           `💰 balance: **\`${await dep.formatAmount(await dep.getDredcoin(user))}\`**`,
               color: "#00FF00",
               user,
               reward: true,
@@ -75,8 +75,8 @@ export default {
               title: `${dep.config.PREFIX}${command} ${bet}`,
               description: `You guessed **\`${guess}\`**\n` + 
                            `🎲 The dice rolled **\`${diceRoll}\`**\n` + 
-                           `❌ Wrong! You lost **\`${dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
-                           `💰 balance: **\`${dep.formatAmount(await dep.getDredcoin(user))}\`**.`,
+                           `❌ Wrong! You lost **\`${await dep.formatAmount(bet)}${dep.config.CURRENCY_SYMBOL}\`**.\n` +
+                           `💰 balance: **\`${await dep.formatAmount(await dep.getDredcoin(user))}\`**.`,
               color: "#FF0000",
               user,
               reward: false,
